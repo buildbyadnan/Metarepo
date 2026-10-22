@@ -1,4 +1,5 @@
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL!;
+import { SERVER_URL } from "@/config/server";
+
 const MAX_RETRIES = 2;
 const BASE_DELAY_MS = 300;
 

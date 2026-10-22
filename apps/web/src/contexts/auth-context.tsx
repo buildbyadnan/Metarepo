@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { apiFetch } from "@/lib/api";
+import { SERVER_URL } from "@/config/server";
 import { API_ENDPOINTS } from "@repo/api-endpoints";
 
 type User = {
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   const login = useCallback(() => {
-    window.location.href = `${process.env.NEXT_PUBLIC_SERVER_URL}${API_ENDPOINTS.auth.google}`;
+    window.location.href = `${SERVER_URL}${API_ENDPOINTS.auth.google}`;
   }, []);
 
   const logout = useCallback(async () => {

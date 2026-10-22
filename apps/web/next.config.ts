@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:8787";
+// Fallback must match PRODUCTION_SERVER_URL in src/config/server.ts — the
+// CSP connect-src below gates the API origin the browser may fetch.
+const serverUrl =
+  process.env.NEXT_PUBLIC_SERVER_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://metarepo-api.adnanbuilds.online"
+    : "http://localhost:8787");
 const isDev = process.env.NODE_ENV === "development";
 
 const securityHeaders = [
