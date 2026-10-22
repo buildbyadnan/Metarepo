@@ -3,6 +3,7 @@ import "./globals.css";
 import Script from "next/script";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://metarepo.adnanbuilds.online"),
   title: "Syed Adnan Ali - Software Developer & Founder",
   description: "Full-stack developer and founder of Electroplix, specializing in serverless architectures, web development, and AI integration with expertise in Next.js, React, TypeScript, and Python.",
   keywords: "software developer, full-stack developer, serverless architecture, Cloudflare Workers, Next.js, React, TypeScript, Python, web development, Electroplix",

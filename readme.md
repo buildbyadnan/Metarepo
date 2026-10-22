@@ -62,7 +62,13 @@ Metarepo/
 ### Prerequisites
 
 - Node.js 20+ (24 recommended — see `.node-version`)
-- pnpm 10 (via corepack: `corepack enable`)
+- pnpm (via corepack: `corepack enable`)
+
+> **Note on pnpm versions:** this repo pins pnpm through the `packageManager`
+> field in `package.json` (`pnpm@10.12.1`). pnpm automatically switches to the
+> pinned version inside the repo, so seeing `10.12.1` from `pnpm --version`
+> here while your global pnpm is newer is expected, not a bug. CI follows the
+> same pin automatically.
 
 ### Install
 
@@ -75,17 +81,23 @@ pnpm install
 ### Run
 
 ```bash
-# Portfolio v2 (flagship site)
-pnpm exec nx dev @repo/portfolio-v2
+# Interactive: asks which app you want to run
+pnpm dev
 
-# Portfolio v1 (cyberpunk edition)
-pnpm exec nx dev @repo/portfolio-v1
+# Or jump straight to one app (v1 | v2 | web | server)
+pnpm dev v2
+pnpm dev v1
+pnpm dev web
+pnpm dev server   # API on port 8787; needs apps/server/.dev.vars (see .dev.vars.example)
+```
 
-# LaunchKit frontend
-pnpm exec nx dev @repo/web
+Equivalent direct commands:
 
-# API server (port 8787)
-pnpm exec nx dev @repo/server
+```bash
+pnpm exec nx dev @repo/portfolio-v2   # Portfolio v2 (flagship site)
+pnpm exec nx dev @repo/portfolio-v1   # Portfolio v1 (cyberpunk edition)
+pnpm exec nx dev @repo/web            # LaunchKit frontend
+pnpm exec nx dev @repo/server         # API server (port 8787)
 ```
 
 ### Common Tasks
@@ -102,16 +114,19 @@ pnpm run format                     # Prettier format
 
 ## 📡 Deployment
 
-Each deployable app has its own GitHub Actions workflow, triggered by path-filtered
-pushes to `main`:
+Each deployable app has its own GitHub Actions workflow. The portfolio apps
+deploy automatically on path-filtered pushes to `main`; the kit apps
+(`apps/web`, `apps/server`) are **manual-only** until their `wrangler.jsonc`
+placeholders (worker names, D1 database id) are configured — re-enable their
+`push` triggers in the workflow files when ready:
 
-| Workflow | Deploys |
-| --- | --- |
-| `deploy.web.yml` | `apps/web` → Cloudflare Workers |
-| `deploy.server.yml` | `apps/server` → Cloudflare Workers |
-| `deploy.portfolio-v1.yml` | `apps/portfolio/v1` → Cloudflare Workers |
-| `deploy.portfolio-v2.yml` | `apps/portfolio/v2` → Cloudflare Workers |
-| `ci.yml` | build + typecheck + lint + test on every push/PR |
+| Workflow | Deploys | Trigger |
+| --- | --- | --- |
+| `deploy.portfolio-v1.yml` | `apps/portfolio/v1` → Cloudflare Workers | push to `main` |
+| `deploy.portfolio-v2.yml` | `apps/portfolio/v2` → Cloudflare Workers | push to `main` |
+| `deploy.web.yml` | `apps/web` → Cloudflare Workers | manual (kit placeholders pending) |
+| `deploy.server.yml` | `apps/server` → Cloudflare Workers | manual (kit placeholders + D1 pending) |
+| `ci.yml` | build + typecheck + lint + test on every push/PR | push/PR |
 
 Required repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
 

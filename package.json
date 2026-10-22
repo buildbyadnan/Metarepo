@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

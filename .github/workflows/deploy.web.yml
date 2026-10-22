@@ -1,13 +1,13 @@
 name: Deploy @repo/web to Cloudflare Workers
 
+# Manual-only for now: wrangler.jsonc still holds the kit placeholder worker
+# name "org-web". Set a real worker name, then either trigger this workflow
+# manually from the Actions tab or restore the push trigger:
+#   push:
+#     branches: [main]
+#     paths: ["apps/web/**", "packages/api-endpoints/**", "packages/products/**"]
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "apps/web/**"
-      - "packages/api-endpoints/**"
-      - "packages/products/**"
+  workflow_dispatch:
 
 concurrency:
   group: deploy-web

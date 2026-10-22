@@ -3,8 +3,10 @@ packages:
   - 'packages/*'
 
 onlyBuiltDependencies:
+  - '@parcel/watcher'
   - '@swc/core'
   - esbuild
+  - less
   - nx
   - sharp
   - workerd
