@@ -32,6 +32,11 @@
       }
     }
   ],
+  "targetDefaults": {
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
+    }
+  },
   "analytics": false,
   "generators": {
     "@nx/next": {
