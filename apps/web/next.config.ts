@@ -17,7 +17,7 @@ const securityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    value: `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://lh3.googleusercontent.com https://*.googleusercontent.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ${serverUrl}; frame-src 'none'; frame-ancestors 'none';${isDev ? "" : " upgrade-insecure-requests;"}`,
+    value: `default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://lh3.googleusercontent.com https://*.googleusercontent.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ${serverUrl} https://static.cloudflareinsights.com https://cloudflareinsights.com; frame-src 'none'; frame-ancestors 'none';${isDev ? "" : " upgrade-insecure-requests;"}`,
   },
   {
     key: "Permissions-Policy",

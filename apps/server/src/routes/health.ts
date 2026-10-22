@@ -13,10 +13,9 @@ healthRoutes.get("/health", async (c) => {
   try {
     const db = c.var.db;
     const start = Date.now();
-    await db
-      .select()
-      .from(sql`1`)
-      .limit(1);
+    // Round-trip probe: `select 1` is valid SQLite (a `from 1`-style probe
+    // is a syntax error and would always report unreachable).
+    await db.all(sql`select 1`);
     const latency = Date.now() - start;
     return c.json({
       status: "ok",
