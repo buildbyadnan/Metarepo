@@ -1,5 +1,5 @@
-import { LandingPage } from "@/components/landing-page";
+import { MetarepoLanding } from "@/components/metarepo-landing";
 
 export default function Index() {
-  return <LandingPage />;
+  return <MetarepoLanding />;
 }

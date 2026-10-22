@@ -10,11 +10,4 @@ export const API_ENDPOINTS = {
 
   // Health
   health: "/health",
-
-  // Payment Endpoints
-  payments: {
-    createOrder: "/payments/create-order",
-    verifyOrder: "/payments/verify-order",
-    webhook: "/payments/webhook",
-  },
 };

@@ -13,7 +13,6 @@
   "dependencies": {
     "@opennextjs/cloudflare": "^1.3.0",
     "@repo/api-endpoints": "workspace:*",
-    "@repo/products": "workspace:*",
     "@tailwindcss/postcss": "^4.3.2",
     "next": "~16.2.9",
     "react": "^19.0.0",

@@ -4,7 +4,10 @@ import { BRANDING } from "@/config/branding";
 import "./global.css";
 
 export const metadata: Metadata = {
-  title: BRANDING.name,
+  title: {
+    default: BRANDING.name,
+    template: `%s · ${BRANDING.name}`,
+  },
   description: BRANDING.tagline,
   metadataBase: new URL(BRANDING.url),
   openGraph: {
@@ -28,6 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@300;400;600&display=swap"
+          rel="stylesheet"
+        />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

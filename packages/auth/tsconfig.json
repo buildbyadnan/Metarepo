@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declaration": true,
+    "lib": ["es2022", "dom"]
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../http"
+    }
+  ]
+}

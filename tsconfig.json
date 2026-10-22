@@ -9,10 +9,7 @@
       "path": "./packages/api-endpoints"
     },
     {
-      "path": "./packages/products"
-    },
-    {
-      "path": "./packages/types"
+      "path": "./packages/auth"
     },
     {
       "path": "./packages/http"

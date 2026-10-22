@@ -5,7 +5,7 @@ name: Deploy @repo/web to Cloudflare Workers
 # manually from the Actions tab or restore the push trigger:
 #   push:
 #     branches: [main]
-#     paths: ["apps/web/**", "packages/api-endpoints/**", "packages/products/**"]
+#     paths: ["apps/web/**", "packages/api-endpoints/**", "packages/auth/**"]
 on:
   workflow_dispatch:
 

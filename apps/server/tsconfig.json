@@ -13,21 +13,17 @@
     "skipLibCheck": true,
     "types": ["./worker-configuration.d.ts"],
     "paths": {
-      "@repo/products": ["../../packages/products/src"],
-      "@repo/http": ["../../packages/http/src"],
-      "@repo/types": ["../../packages/types/src"]
+      "@repo/auth": ["../../packages/auth/src"],
+      "@repo/http": ["../../packages/http/src"]
     }
   },
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../packages/types"
-    },
-    {
-      "path": "../../packages/products"
-    },
-    {
       "path": "../../packages/http"
+    },
+    {
+      "path": "../../packages/auth"
     }
   ]
 }

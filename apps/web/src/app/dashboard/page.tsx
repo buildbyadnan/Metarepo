@@ -1,24 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { BRANDING } from "@/config/branding";
 
 export default function DashboardPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, waitlisted, logout } = useAuth();
   const router = useRouter();
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (loading) return;
+    if (!user) {
       router.push("/");
+    } else if (waitlisted) {
+      // Waitlisted accounts are not allowed past this point.
+      router.replace("/waitlist");
     }
-  }, [user, loading, router]);
+  }, [user, loading, waitlisted, router]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white">
+      <div className="min-h-screen bg-[#07090a] flex flex-col items-center justify-center p-6 text-white">
         <div className="w-full max-w-4xl space-y-8 animate-pulse">
           <div className="h-12 bg-slate-800 rounded-lg w-1/4"></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -44,16 +47,16 @@ export default function DashboardPage() {
     : "Recently Joined";
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
+    <div className="relative min-h-screen bg-[#07090a] text-slate-100 selection:bg-emerald-500 selection:text-white">
       {/* Glow effects */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[128px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[128px] pointer-events-none" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-[128px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-green-700/10 rounded-full blur-[128px] pointer-events-none" />
 
       {/* Navigation */}
-      <nav className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-slate-900 bg-[#07090a]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/35">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-700 flex items-center justify-center shadow-lg shadow-emerald-600/35">
               <span className="font-extrabold text-sm text-white">
                 {BRANDING.name.slice(0, 2).toUpperCase()}
               </span>
@@ -86,19 +89,6 @@ export default function DashboardPage() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-6 py-12 relative z-10">
-        {/* Payment Success Banner */}
-        {paymentSuccess && (
-          <div className="mb-8 flex items-center justify-between gap-4 px-6 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
-            <span>Payment successful! Thank you for your purchase.</span>
-            <button
-              onClick={() => setPaymentSuccess(false)}
-              className="font-semibold hover:underline cursor-pointer shrink-0"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
         {/* Header Section */}
         <div className="mb-10">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
@@ -111,10 +101,10 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Profile Card */}
           <div className="relative group rounded-2xl border border-slate-900 bg-slate-900/40 p-8 backdrop-blur-sm overflow-hidden flex flex-col items-center text-center">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
 
             <div className="relative mb-6">
-              <div className="absolute -inset-0.5 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-full blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute -inset-0.5 bg-gradient-to-tr from-emerald-500 to-green-700 rounded-full blur-sm opacity-70 group-hover:opacity-100 transition-opacity" />
               {user.picture ? (
                 <img
                   src={user.picture}
@@ -148,7 +138,7 @@ export default function DashboardPage() {
                   Provider
                 </span>
                 <div className="flex items-center gap-2 mt-1">
-                  <svg className="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.53-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.986 0-.746-.08-1.32-.176-1.886H12.24z" />
                   </svg>
                   <span className="text-sm font-semibold text-slate-200">Google OAuth</span>
@@ -166,7 +156,7 @@ export default function DashboardPage() {
 
           {/* Account Details & Security Posture Card */}
           <div className="md:col-span-2 relative rounded-2xl border border-slate-900 bg-slate-900/40 p-8 backdrop-blur-sm overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-green-600/50 to-transparent" />
 
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <svg
@@ -259,7 +249,7 @@ export default function DashboardPage() {
                       <span className="text-xs text-slate-500">{user.email}</span>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/15">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
                     Primary
                   </span>
                 </div>

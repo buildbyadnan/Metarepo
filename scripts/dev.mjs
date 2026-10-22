@@ -15,10 +15,8 @@ const require = createRequire(import.meta.url);
 const NX_BIN = path.join(path.dirname(require.resolve("nx/package.json")), "dist/bin/nx.js");
 
 const APPS = [
-  { key: "v2", project: "@repo/portfolio-v2", label: "Portfolio v2 (flagship site)" },
-  { key: "v1", project: "@repo/portfolio-v1", label: "Portfolio v1 (cyberpunk edition)" },
-  { key: "web", project: "@repo/web", label: "Web (SaaS LaunchKit Pro frontend)" },
-  { key: "server", project: "@repo/server", label: "Server (Hono API - Cloudflare Workers)" },
+  { key: "web", project: "@repo/web", label: "MetaRepo web (Next.js frontend)" },
+  { key: "server", project: "@repo/server", label: "API server (Hono - Cloudflare Workers)" },
 ];
 
 function runApp(app) {
@@ -67,7 +65,7 @@ async function main() {
   });
 
   for (;;) {
-    const answer = (await rl.question("Select an option (1-4, or a key like v2): "))
+    const answer = (await rl.question("Select an option (1-2, or a key like web): "))
       .trim()
       .toLowerCase();
     const byNumber = /^\d+$/.test(answer) ? APPS[Number(answer) - 1] : undefined;

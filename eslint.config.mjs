@@ -33,7 +33,6 @@ export default tseslint.config(
       "**/.agents/**",
       "**/packages/*/dist/**",
       "**/apps/*/dist/**",
-      "apps/portfolio/**",
       "apps/server/worker-configuration.d.ts",
       "**/*.tsbuildinfo",
       "**/*.mjs",

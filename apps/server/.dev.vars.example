@@ -1,1 +1,5 @@
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ALLOWED_ORIGINS=http://localhost:3000
+WEB_APP_URL=http://localhost:3000
+SESSION_SECRET=your-session-secret-min-32-chars

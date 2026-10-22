@@ -1,16 +1,16 @@
 <div align="center" style="margin-bottom: 1.5rem;">
-  <img src="apps/portfolio/v2/public/metarepo_image-removebg-preview.png" alt="MetaRepo Logo" width="220" style="margin-bottom: 0.5rem;" />
-  <h1 style="font-size:2.5rem; font-weight:900; margin:0.5rem 0; letter-spacing:1px; color:#06b6d4;">MetaRepo</h1>
+  <img src="apps/web/public/metarepo-logo.png" alt="MetaRepo Logo" width="220" style="margin-bottom: 0.5rem;" />
+  <h1 style="font-size:2.5rem; font-weight:900; margin:0.5rem 0; letter-spacing:1px; color:#3dff7a;">MetaRepo</h1>
   <p style="font-size:1.2rem; color:#333; margin-bottom:0.5rem;">
     <b>The Development Universe</b>
   </p>
   <p style="font-size:1rem; color:#444; max-width:600px; margin:0 auto;">
-    A unified monorepo containing all my work — my portfolio UIs (v1 & v2) and the
-    SaaS LaunchKit Pro foundation — orchestrated with Nx, built on Next.js 16 and
-    deployed to Cloudflare.
+    One open monorepo for everything I build — a dark, green, mono-styled web app
+    where every visitor signs in with Google and lands on the waitlist until
+    approved. Next.js 16 + Hono on Cloudflare Workers, orchestrated with Nx.
   </p>
   <p>
-    <a href="https://adnanthecoder.com" style="font-size:1.1rem; font-weight:700; color:#06b6d4;">adnanthecoder.com</a>
+    <a href="https://metarepo.adnanbuilds.online" style="font-size:1.1rem; font-weight:700; color:#3dff7a;">metarepo.adnanbuilds.online</a>
   </p>
 </div>
 
@@ -21,26 +21,44 @@
 ```
 Metarepo/
 ├── apps/
-│   ├── web/                    # SaaS LaunchKit Pro frontend (Next.js 16 + Tailwind v4)
-│   ├── server/                 # Hono API on Cloudflare Workers + D1 + Drizzle
-│   └── portfolio/
-│       ├── v1/                 # Portfolio v1 — cyberpunk edition (Next.js 16)
-│       └── v2/                 # Portfolio v2 — flagship site (Next.js 16)
+│   ├── web/                    # MetaRepo web — landing, waitlist, dashboard (Next.js 16 + Tailwind v4)
+│   └── server/                 # Hono API — Google OAuth, sessions, waitlist (Cloudflare Workers + D1 + Drizzle)
 ├── packages/
-│   ├── api-endpoints/          # @repo/api-endpoints — API route constants
-│   ├── http/                   # @repo/http — shared HTTP/crypto utilities
-│   ├── products/               # @repo/products — product catalog config
-│   └── types/                  # @repo/types — shared TypeScript types
-├── .github/workflows/          # CI + per-app Cloudflare deploy pipelines
+│   ├── api-endpoints/          # @repo/api-endpoints — typed API route constants
+│   ├── auth/                   # @repo/auth — Google OAuth (PKCE, state checks, token exchange/refresh)
+│   └── http/                   # @repo/http — shared HTTP/crypto utilities (fetch, HMAC, AES-GCM)
+├── .github/workflows/          # CI + deploy pipelines
 ├── Architecture.md             # SaaS LaunchKit Pro architecture reference
 └── SETUP.md                    # SaaS LaunchKit Pro setup reference
 ```
 
-> The portfolio apps (`apps/portfolio/*`) are **UI-only backups** — their booking and
-> contact forms are front-end flows with no backend wired in this repo.
->
-> `Architecture.md` and `SETUP.md` document the full SaaS LaunchKit Pro kit;
-> this repo intentionally does not vendor the kit's `auth` and `payments` packages.
+> `Architecture.md` and `SETUP.md` document the SaaS LaunchKit Pro kit this repo
+> is built on. The kit's **auth** package is vendored here (`packages/auth`);
+> its **payments** package intentionally is not.
+
+---
+
+## 🔐 Auth & Waitlist Flow
+
+1. A visitor clicks **Sign in with Google** on the landing page → `GET /auth/google`
+   (PKCE + state cookies) → Google consent screen.
+2. The callback upserts the identity (`users` / `accounts`), creates a session
+   cookie, and **adds the email to the `waitlist` table with `status = 'pending'`**.
+3. Waitlisted users are routed to **`/waitlist`** — the dashboard is gated until
+   approval. Approved users go straight to **`/dashboard`**.
+4. You approve people manually (before/during production):
+
+   ```bash
+   # via wrangler (D1)
+   npx wrangler d1 execute repo-db --remote \
+     --command="UPDATE waitlist SET status='approved' WHERE email='someone@example.com'"
+
+   # or via drizzle studio
+   cd apps/server && pnpm studio
+   ```
+
+   `GET /auth/me` reports `{ user, waitlisted, waitlistStatus }` so the web app
+   can gate routes client-side (middleware handles the session-cookie check).
 
 ---
 
@@ -50,6 +68,7 @@ Metarepo/
 | --- | --- |
 | **Frontend** | Next.js 16 + React 19, Tailwind CSS v4 |
 | **Backend** | Hono.js 4 on Cloudflare Workers |
+| **Auth** | Google OAuth 2.0 (PKCE) — `packages/auth` |
 | **Database** | Cloudflare D1 + Drizzle ORM |
 | **Build** | Nx + SWC, pnpm workspaces, TypeScript |
 | **Testing** | Vitest |
@@ -73,10 +92,28 @@ Metarepo/
 ### Install
 
 ```bash
-git clone https://github.com/Adnan-The-Coder/Metarepo.git
+git clone https://github.com/buildbyadnan/Metarepo.git
 cd Metarepo
 pnpm install
 ```
+
+### Configure
+
+```bash
+# Web app — where the API lives
+cp apps/web/.env.local.example apps/web/.env.local
+
+# API server — Google OAuth credentials + session secret
+cp apps/server/.dev.vars.example apps/server/.dev.vars
+```
+
+Create an OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+(type: **Web application**) with:
+
+- Authorized JavaScript origin: `http://localhost:3000`
+- Authorized redirect URI: `http://localhost:8787/auth/google/callback`
+
+and put the client id/secret into `apps/server/.dev.vars`.
 
 ### Run
 
@@ -84,20 +121,17 @@ pnpm install
 # Interactive: asks which app you want to run
 pnpm dev
 
-# Or jump straight to one app (v1 | v2 | web | server)
-pnpm dev v2
-pnpm dev v1
+# Or jump straight to one app
 pnpm dev web
-pnpm dev server   # API on port 8787; needs apps/server/.dev.vars (see .dev.vars.example)
+pnpm dev server   # API on port 8787
 ```
 
-Equivalent direct commands:
+### Database (server)
 
 ```bash
-pnpm exec nx dev @repo/portfolio-v2   # Portfolio v2 (flagship site)
-pnpm exec nx dev @repo/portfolio-v1   # Portfolio v1 (cyberpunk edition)
-pnpm exec nx dev @repo/web            # LaunchKit frontend
-pnpm exec nx dev @repo/server         # API server (port 8787)
+cd apps/server
+pnpm generate     # drizzle-kit generate — create/refresh SQL migrations
+pnpm migrate      # apply a migration to local or remote D1
 ```
 
 ### Common Tasks
@@ -114,25 +148,26 @@ pnpm run format                     # Prettier format
 
 ## 📡 Deployment
 
-Each deployable app has its own GitHub Actions workflow. The portfolio apps
-deploy automatically on path-filtered pushes to `main`; the kit apps
-(`apps/web`, `apps/server`) are **manual-only** until their `wrangler.jsonc`
-placeholders (worker names, D1 database id) are configured — re-enable their
-`push` triggers in the workflow files when ready:
+Each app has its own GitHub Actions workflow. Both are **manual-only**
+(`workflow_dispatch`) until the `wrangler.jsonc` placeholders are configured —
+fill in the real worker names and D1 database id, then either trigger from the
+Actions tab or restore the `push` triggers in the workflow files:
 
 | Workflow | Deploys | Trigger |
 | --- | --- | --- |
-| `deploy.portfolio-v1.yml` | `apps/portfolio/v1` → Cloudflare Workers | push to `main` |
-| `deploy.portfolio-v2.yml` | `apps/portfolio/v2` → Cloudflare Workers | push to `main` |
-| `deploy.web.yml` | `apps/web` → Cloudflare Workers | manual (kit placeholders pending) |
-| `deploy.server.yml` | `apps/server` → Cloudflare Workers | manual (kit placeholders + D1 pending) |
+| `deploy.web.yml` | `apps/web` → Cloudflare Workers | manual (worker name placeholder pending) |
+| `deploy.server.yml` | `apps/server` → Cloudflare Workers | manual (D1 + worker placeholders pending) |
 | `ci.yml` | build + typecheck + lint + test on every push/PR | push/PR |
 
 Required repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+
+For the server's first real deploy you also need worker vars:
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+ chars),
+`WEB_APP_URL`, `ALLOWED_ORIGINS`.
 
 ---
 
 <p align="center">
   <i>"Building the future, one commit at a time."</i><br>
-  <b>Adnan • <a href="https://adnanthecoder.com">adnanthecoder.com</a></b>
+  <b>Adnan • <a href="https://metarepo.adnanbuilds.online">metarepo.adnanbuilds.online</a></b>
 </p>

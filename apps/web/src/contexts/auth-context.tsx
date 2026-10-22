@@ -24,6 +24,8 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   error: string | null;
+  waitlisted: boolean;
+  waitlistStatus: string | null;
   login: () => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -35,14 +37,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [waitlisted, setWaitlisted] = useState(false);
+  const [waitlistStatus, setWaitlistStatus] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
     try {
-      const data = await apiFetch<{ user: User }>(API_ENDPOINTS.auth.me);
+      const data = await apiFetch<{
+        user: User;
+        waitlisted?: boolean;
+        waitlistStatus?: string | null;
+      }>(API_ENDPOINTS.auth.me);
       setUser(data.user);
+      setWaitlisted(data.waitlisted ?? false);
+      setWaitlistStatus(data.waitlistStatus ?? null);
       setError(null);
     } catch (err) {
       setUser(null);
+      setWaitlisted(false);
+      setWaitlistStatus(null);
       // A 401 means "not logged in" — that is not an error state, just unauthenticated.
       // Only surface an error for unexpected failures (5xx, network, etc.)
       const message = err instanceof Error ? err.message : "";
@@ -71,12 +83,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Silent fail — user will be logged out locally regardless
     } finally {
       setUser(null);
+      setWaitlisted(false);
+      setWaitlistStatus(null);
     }
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, error, login, logout, refreshUser: fetchUser }),
-    [user, loading, error, login, logout, fetchUser],
+    () => ({
+      user,
+      loading,
+      error,
+      waitlisted,
+      waitlistStatus,
+      login,
+      logout,
+      refreshUser: fetchUser,
+    }),
+    [user, loading, error, waitlisted, waitlistStatus, login, logout, fetchUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
