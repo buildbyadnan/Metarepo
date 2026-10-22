@@ -1,14 +1,14 @@
 name: Deploy @repo/server to Cloudflare Workers
 
-# Manual-only for now: the kit server is a later-phase deployment and
-# wrangler.jsonc still holds the kit placeholders (worker name "org-server",
-# D1 database_id "<your-d1-database-id>"). Fill those in, then either trigger
-# this workflow manually from the Actions tab or restore the push trigger:
-#   push:
-#     branches: [main]
-#     paths: ["apps/server/**"]
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/server/**"
+      - "packages/auth/**"
+      - "packages/http/**"
+      - "pnpm-lock.yaml"
 
 concurrency:
   group: deploy-server

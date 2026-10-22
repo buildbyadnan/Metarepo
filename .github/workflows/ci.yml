@@ -36,4 +36,6 @@ jobs:
 
       - run: pnpm exec nx run-many -t lint
 
-      - run: pnpm audit --audit-level high
+      # Gate on production deps only: dev-only advisories (e.g. nx dev-server
+      # tooling) never ship to users and often have no patch available.
+      - run: pnpm audit --prod --audit-level high

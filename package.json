@@ -17,10 +17,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@nx/devkit": "23.0.1",
-    "@nx/js": "23.0.1",
-    "@nx/next": "23.0.1",
-    "@nx/react": "23.0.1",
+    "@nx/devkit": "23.3.0",
+    "@nx/js": "23.3.0",
+    "@nx/next": "23.3.0",
+    "@nx/react": "23.3.0",
     "@swc-node/register": "1.11.1",
     "@swc/cli": "~0.8.0",
     "@swc/core": "1.15.8",
@@ -31,11 +31,17 @@
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "nx": "23.0.1",
+    "nx": "23.3.0",
     "prettier": "^3.9.4",
     "tslib": "^2.3.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.62.1",
-    "vitest": "^3.2.1"
+    "vitest": "^4.1.12",
+    "webpack": "^5.112.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@node-minify/core>glob": "^10.5.0"
+    }
   }
 }
