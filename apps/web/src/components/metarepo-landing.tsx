@@ -256,6 +256,16 @@ function renderCard(card: CardData) {
   );
 }
 
+// Human copy for the OAuth failure codes the callback can append as
+// ?auth_error=… — users should never have to decode raw codes.
+const AUTH_ERROR_COPY: Record<string, string> = {
+  callback_failed: "something went wrong completing your sign-in. Please try again.",
+  invalid_state: "your sign-in session expired. Please try again.",
+  missing_params: "Google did not finish handing back the sign-in. Please try again.",
+  invalid_user: "Google did not return a valid account. Please try again.",
+  invalid_email: "that Google account has no usable email address.",
+};
+
 export function MetarepoLanding() {
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -398,7 +408,8 @@ export function MetarepoLanding() {
             <CtaButton />
             {authError ? (
               <p className="mono" style={{ color: "#ff6b85", fontSize: "0.75rem" }}>
-                Google sign-in failed ({authError}) — please try again.
+                Google sign-in failed —{" "}
+                {AUTH_ERROR_COPY[authError] ?? `please try again (code: ${authError}).`}
               </p>
             ) : null}
             <a

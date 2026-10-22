@@ -21,6 +21,12 @@ type User = {
   createdAt?: string;
 };
 
+type AuthSnapshot = {
+  user: User;
+  waitlisted: boolean;
+  waitlistStatus: string | null;
+};
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
@@ -29,7 +35,8 @@ type AuthContextType = {
   waitlistStatus: string | null;
   login: () => void;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  /** Re-fetches /auth/me and returns the fresh snapshot (null when signed out/unreachable). */
+  refreshUser: () => Promise<AuthSnapshot | null>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -41,17 +48,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [waitlisted, setWaitlisted] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<string | null>(null);
 
-  const fetchUser = useCallback(async () => {
+  const fetchUser = useCallback(async (): Promise<AuthSnapshot | null> => {
     try {
       const data = await apiFetch<{
         user: User;
         waitlisted?: boolean;
         waitlistStatus?: string | null;
       }>(API_ENDPOINTS.auth.me);
-      setUser(data.user);
-      setWaitlisted(data.waitlisted ?? false);
-      setWaitlistStatus(data.waitlistStatus ?? null);
+      const snapshot: AuthSnapshot = {
+        user: data.user,
+        waitlisted: data.waitlisted ?? false,
+        waitlistStatus: data.waitlistStatus ?? null,
+      };
+      setUser(snapshot.user);
+      setWaitlisted(snapshot.waitlisted);
+      setWaitlistStatus(snapshot.waitlistStatus);
       setError(null);
+      return snapshot;
     } catch (err) {
       setUser(null);
       setWaitlisted(false);
@@ -64,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setError(message || "Could not reach auth server");
       }
+      return null;
     } finally {
       setLoading(false);
     }
