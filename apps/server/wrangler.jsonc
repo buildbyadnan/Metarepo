@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "metarepo-api-adnanbuilds-online",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./public",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "metarepo-db-adnanbuilds-online",
+      "database_id": "a0827dc6-cfda-423a-9b09-c0fec43dab30",
+    },
+  ],
+  "observability": {
+    "enabled": true,
+  },
+  "upload_source_maps": false,
+}

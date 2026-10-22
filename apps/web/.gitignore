@@ -1,0 +1,4 @@
+.dev.vars*
+.wrangler/
+.env*
+!.env.local.example

@@ -1,126 +1,173 @@
-
 <div align="center" style="margin-bottom: 1.5rem;">
-  <img src="apps/web-v2/public/metarepo_image-removebg-preview.png" alt="MetaRepo Logo" width="220" style="margin-bottom: 0.5rem;" />
-  <h1 style="font-size:2.5rem; font-weight:900; margin:0.5rem 0; letter-spacing:1px; color:#06b6d4;">MetaRepo</h1>
+  <img src="apps/web/public/metarepo-logo.png" alt="MetaRepo Logo" width="220" style="margin-bottom: 0.5rem;" />
+  <h1 style="font-size:2.5rem; font-weight:900; margin:0.5rem 0; letter-spacing:1px; color:#3dff7a;">MetaRepo</h1>
   <p style="font-size:1.2rem; color:#333; margin-bottom:0.5rem;">
     <b>The Development Universe</b>
   </p>
   <p style="font-size:1rem; color:#444; max-width:600px; margin:0 auto;">
-    A unified monorepo containing all my work — from personal projects and open-source libraries to my portfolio and coding experiments.<br>
-    It’s a single place to track my development journey, share ideas, and build in the open.<br>
-    <b>Major things coming soon here from private repos 😅</b>
+    One open monorepo for everything I build — a dark, green, mono-styled web app
+    where every visitor signs in with Google and lands on the waitlist until
+    approved. Next.js 16 + Hono on Cloudflare Workers, orchestrated with Nx.
   </p>
   <p>
-    <a href="https://adnanthecoder.com" style="font-size:1.1rem; font-weight:700; color:#06b6d4;">adnanthecoder.com</a>
+    <a href="https://metarepo.adnanbuilds.online" style="font-size:1.1rem; font-weight:700; color:#3dff7a;">metarepo.adnanbuilds.online</a>
   </p>
-  <div style="margin-top:1rem;">
-    <img alt="AWS" src="https://img.shields.io/badge/AWS-232F3E?style=flat-square&logo=amazon-aws&logoColor=white" />
-    <img alt="GCP" src="https://img.shields.io/badge/GCP-4285F4?style=flat-square&logo=google-cloud&logoColor=white" />
-    <img alt="Azure" src="https://img.shields.io/badge/Azure-0078D4?style=flat-square&logo=microsoft-azure&logoColor=white" />
-    <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-F38020?style=flat-square&logo=cloudflare&logoColor=white" />
-    <img alt="Heroku" src="https://img.shields.io/badge/Heroku-430098?style=flat-square&logo=heroku&logoColor=white" />
-    <img alt="Kubernetes" src="https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white" />
-    <img alt="Docker" src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
-    <img alt="Kafka" src="https://img.shields.io/badge/Kafka-231F20?style=flat-square&logo=apache-kafka&logoColor=white" />
-    <img alt="Prometheus" src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white" />
-    <img alt="Node.js" src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white" />
-    <img alt="NestJS" src="https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white" />
-    <img alt="Golang" src="https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white" />
-    <img alt="Rust" src="https://img.shields.io/badge/Rust-000000?style=flat-square&logo=rust&logoColor=white" />
-    <img alt="Java" src="https://img.shields.io/badge/Java-007396?style=flat-square&logo=java&logoColor=white" />
-    <img alt="Spring Boot" src="https://img.shields.io/badge/Spring%20Boot-6DB33F?style=flat-square&logo=spring-boot&logoColor=white" />
-  </div>
 </div>
 
 ---
 
-## 🌌 The Mission
+## 📂 Repository Structure
 
-**MetaRepo** is not just a monorepo—it's a living showcase of best practices in DevOps, MLOps, and cloud-native engineering. Here you'll find:
+```
+Metarepo/
+├── apps/
+│   ├── web/                    # MetaRepo web — landing, waitlist, dashboard (Next.js 16 + Tailwind v4)
+│   └── server/                 # Hono API — Google OAuth, sessions, waitlist (Cloudflare Workers + D1 + Drizzle)
+├── packages/
+│   ├── api-endpoints/          # @repo/api-endpoints — typed API route constants
+│   ├── auth/                   # @repo/auth — Google OAuth (PKCE, state checks, token exchange/refresh)
+│   └── http/                   # @repo/http — shared HTTP/crypto utilities (fetch, HMAC, AES-GCM)
+├── .github/workflows/          # CI + deploy pipelines
+├── Architecture.md             # SaaS LaunchKit Pro architecture reference
+└── SETUP.md                    # SaaS LaunchKit Pro setup reference
+```
 
-- Real-world deployment configs for every major cloud platform (**AWS**, **GCP**, **Azure**, **Cloudflare**, **Heroku**) and edge provider.
-- End-to-end DevOps/MLOps blueprints: CI/CD pipelines, monitoring, observability, and infrastructure-as-code.
-- Boilerplates and production templates for **Kubernetes**, **Kafka**, **Prometheus**, **Docker**, and more.
-- Multi-language support: **Node.js**, **NestJS**, **Golang**, **Rust**, **Java/Spring Boot**, and every stack I explore.
-- As I build new projects, every deployment pattern, config, and best practice will be documented and committed here for the community.
-
-All projects are orchestrated to live under the [adnanthecoder.com](https://adnanthecoder.com) domain, forming a cohesive, open platform for my work and learning.
-
-## 🚀 Repository Highlights
-
-### 🧪 Advanced Analytics
-- **[OU Result Analysis](apps/ou-result-analysis/)**: A high-performance dashboard for Osmania University students. It features robust year-wise filtering (2nd, 3rd, 4th Year), automated leaderboard generation based on SGPA, and a clean UI for navigating complex result data.
-
-### 💼 Portfolio Evolution
-- **[Web-V2](apps/web-v2/)**: The current-generation flagship site. Built with Next.js 15, it represents the cutting edge of my frontend expertise, featuring seamless animations and edge-optimized performance.
-- **[Web-V1](apps/web-v1/)**: The foundation that started it all—now serving as a reference for legacy implementations and architectural growth.
-
-### 🛡️ Core Infrastructure & Backend
-- **[Admin-Web](apps/admin-web/)**: The command center for maintaining all internal services and managing database interactions.
-- **[CF-Server](apps/cf-server/)**: A cloud-native backend powered by Cloudflare Workers. It uses Drizzle ORM and Cloudflare D1 to deliver low-latency, globally distributed APIs.
-- **[Super-Auth](packages/super-auth/)**: A private-grade authentication library now consolidated into the monorepo for universal use across my applications.
+> `Architecture.md` and `SETUP.md` document the SaaS LaunchKit Pro kit this repo
+> is built on. The kit's **auth** package is vendored here (`packages/auth`);
+> its **payments** package intentionally is not.
 
 ---
 
-## 🛠️ The Tech Stack
+## 🔐 Auth & Waitlist Flow
 
-I leverage a modern, industrial-strength stack to ensure every project is scalable, type-safe, and ready for the edge.
+1. A visitor clicks **Sign in with Google** on the landing page → `GET /auth/google`
+   (PKCE + state cookies) → Google consent screen.
+2. The callback upserts the identity (`users` / `accounts`), creates a session
+   cookie, and **adds the email to the `waitlist` table with `status = 'pending'`**.
+3. Waitlisted users are routed to **`/waitlist`** — the dashboard is gated until
+   approval. Approved users go straight to **`/dashboard`**.
+4. You approve people manually (before/during production):
 
-<table align="center">
-  <tr>
-    <td align="center"><b>Frameworks</b></td>
-    <td align="center"><b>Logic & Types</b></td>
-    <td align="center"><b>Database & ORM</b></td>
-    <td align="center"><b>Infrastructure</b></td>
-  </tr>
-  <tr>
-    <td>Next.js 15, React 19</td>
-    <td>TypeScript, Nx</td>
-    <td>Cloudflare D1, Drizzle</td>
-    <td>Cloudflare Workers/Pages</td>
-  </tr>
-</table>
-
-<div align="center">
-  <img alt="TypeScript" src="https://img.shields.io/badge/-TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white" />
-  <img alt="NextJS" src="https://img.shields.io/badge/-NextJS-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
-  <img alt="Nx" src="https://img.shields.io/badge/Nx-000000?style=flat-square&logo=nx&logoColor=white" />
-  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white" />
-  <img alt="Cloudflare" src="https://img.shields.io/badge/Cloudflare-F38020?style=flat&logo=Cloudflare&logoColor=white" />
-  <img alt="TailwindCSS" src="https://img.shields.io/badge/-Tailwind%20CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" />
-</div>
-
----
-
-## 📂 Monorepo Orchestration
-
-This codebase uses **Nx** to manage the relationship between apps and packages.
-
-### Getting Started
-1. **Clone & Install**:
    ```bash
-   git clone https://github.com/Adnan-The-Coder/zero-day-codebase.git
-   cd Metarepo
-   pnpm install
-   ```
-2. **Serve an App**:
-   ```bash
-   # Launch the ECE/CSE Result Analysis tool
-   nx serve ou-result-analysis
-   
-   # Launch the v2 Portfolio
-   nx serve web-v2
+   # via wrangler (D1)
+   npx wrangler d1 execute repo-db --remote \
+     --command="UPDATE waitlist SET status='approved' WHERE email='someone@example.com'"
+
+   # or via drizzle studio
+   cd apps/server && pnpm studio
    ```
 
+   `GET /auth/me` reports `{ user, waitlisted, waitlistStatus }` so the web app
+   can gate routes client-side (middleware handles the session-cookie check).
+
 ---
 
-## 📡 Live Ecosystem
+## 🛠️ Tech Stack
 
-Most of these applications are deployed via **OpenNext** onto **Cloudflare Pages**, providing sub-second load times globally. You can find the results of this monorepo live at [adnanthecoder.com](https://adnanthecoder.com).
+| Layer | Technology |
+| --- | --- |
+| **Frontend** | Next.js 16 + React 19, Tailwind CSS v4 |
+| **Backend** | Hono.js 4 on Cloudflare Workers |
+| **Auth** | Google OAuth 2.0 (PKCE) — `packages/auth` |
+| **Database** | Cloudflare D1 + Drizzle ORM |
+| **Build** | Nx + SWC, pnpm workspaces, TypeScript |
+| **Testing** | Vitest |
+| **CI/CD** | GitHub Actions → OpenNext → Cloudflare Workers |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 20+ (24 recommended — see `.node-version`)
+- pnpm (via corepack: `corepack enable`)
+
+> **Note on pnpm versions:** this repo pins pnpm through the `packageManager`
+> field in `package.json` (`pnpm@10.12.1`). pnpm automatically switches to the
+> pinned version inside the repo, so seeing `10.12.1` from `pnpm --version`
+> here while your global pnpm is newer is expected, not a bug. CI follows the
+> same pin automatically.
+
+### Install
+
+```bash
+git clone https://github.com/buildbyadnan/Metarepo.git
+cd Metarepo
+pnpm install
+```
+
+### Configure
+
+```bash
+# Web app — where the API lives
+cp apps/web/.env.local.example apps/web/.env.local
+
+# API server — Google OAuth credentials + session secret
+cp apps/server/.dev.vars.example apps/server/.dev.vars
+```
+
+Create an OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+(type: **Web application**) with:
+
+- Authorized JavaScript origin: `http://localhost:3000`
+- Authorized redirect URI: `http://localhost:8787/auth/google/callback`
+
+and put the client id/secret into `apps/server/.dev.vars`.
+
+### Run
+
+```bash
+# Interactive: asks which app you want to run
+pnpm dev
+
+# Or jump straight to one app
+pnpm dev web
+pnpm dev server   # API on port 8787
+```
+
+### Database (server)
+
+```bash
+cd apps/server
+pnpm generate     # drizzle-kit generate — create/refresh SQL migrations
+pnpm migrate      # apply a migration to local or remote D1
+```
+
+### Common Tasks
+
+```bash
+pnpm exec nx run-many -t build      # Build everything
+pnpm exec nx run-many -t typecheck  # Typecheck everything
+pnpm exec nx run-many -t lint       # Lint
+pnpm exec vitest run                # Run tests
+pnpm run format                     # Prettier format
+```
+
+---
+
+## 📡 Deployment
+
+Each app has its own GitHub Actions workflow. Both are **manual-only**
+(`workflow_dispatch`) until the `wrangler.jsonc` placeholders are configured —
+fill in the real worker names and D1 database id, then either trigger from the
+Actions tab or restore the `push` triggers in the workflow files:
+
+| Workflow | Deploys | Trigger |
+| --- | --- | --- |
+| `deploy.web.yml` | `apps/web` → Cloudflare Workers | manual (worker name placeholder pending) |
+| `deploy.server.yml` | `apps/server` → Cloudflare Workers | manual (D1 + worker placeholders pending) |
+| `ci.yml` | build + typecheck + lint + test on every push/PR | push/PR |
+
+Required repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+
+For the server's first real deploy you also need worker vars:
+`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SESSION_SECRET` (32+ chars),
+`WEB_APP_URL`, `ALLOWED_ORIGINS`.
 
 ---
 
 <p align="center">
   <i>"Building the future, one commit at a time."</i><br>
-  <b>Adnan • <a href="https://adnanthecoder.com">adnanthecoder.com</a></b>
+  <b>Adnan • <a href="https://metarepo.adnanbuilds.online">metarepo.adnanbuilds.online</a></b>
 </p>

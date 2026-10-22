@@ -1,7 +1,73 @@
-node_modules
-build
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+!.env.local.example
+
+# Secrets / local vars
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# compiled output
 dist
-.nx
-dev_artifacts
-build_assets
+tmp
+out-tsc
+
+# dependencies
+node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# System Files
+.DS_Store
+Thumbs.db
 .ssh
+
+# Nx workspace state (all machine-generated)
+.nx/
+
+# AI agent tool directories (canonical: .github/)
+.agents/
+.codex/
+.cursor/
+.gemini/
+.opencode/
+.mimocode
+
+# Claude
+.claude/worktrees
+.claude/settings.local.json
+
+# Build output in packages
+packages/*/dist/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Next.js
+.next
+out
+.open-next
+
+# Next.js auto-generated types
+next-env.d.ts
+
+# Cloudflare
+.wrangler

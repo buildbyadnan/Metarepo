@@ -1,0 +1,49 @@
+name: Deploy @repo/web to Cloudflare Workers
+
+# Manual-only for now: wrangler.jsonc still holds the kit placeholder worker
+# name "org-web". Set a real worker name, then either trigger this workflow
+# manually from the Actions tab or restore the push trigger:
+#   push:
+#     branches: [main]
+#     paths: ["apps/web/**", "packages/api-endpoints/**", "packages/auth/**"]
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and typecheck
+        run: pnpm exec nx run-many -t build typecheck
+
+      - name: Run tests
+        run: pnpm exec vitest run
+
+      - name: Build and Deploy to Cloudflare Workers
+        run: pnpm run deploy
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

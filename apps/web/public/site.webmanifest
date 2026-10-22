@@ -1,0 +1,16 @@
+{
+  "name": "SaaS LaunchKit Pro",
+  "short_name": "LaunchKit",
+  "description": "The modern SaaS starter kit. Authentication, payments, and deployment — handled.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

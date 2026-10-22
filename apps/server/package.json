@@ -1,0 +1,36 @@
+{
+  "name": "@repo/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "targets": {
+      "typecheck": {
+        "command": "tsc --noEmit -p tsconfig.json",
+        "options": {
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "deploy": "wrangler deploy --minify",
+    "dev": "wrangler dev",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "generate": "drizzle-kit generate",
+    "amend": "drizzle-kit drop && drizzle-kit generate",
+    "studio": "drizzle-kit studio",
+    "migrate": "node scripts/execute-d1.mjs"
+  },
+  "dependencies": {
+    "@repo/auth": "workspace:*",
+    "@repo/http": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.27"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "drizzle-kit": "^0.31.10",
+    "wrangler": "^4.106.0"
+  }
+}
