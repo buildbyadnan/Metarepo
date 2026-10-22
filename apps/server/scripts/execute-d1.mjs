@@ -5,7 +5,7 @@ import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
 const MIGRATION_DIR = "./drizzle";
-const DB_NAME = "repo-db";
+const DB_NAME = "metarepo-db-adnanbuilds-online";
 
 const files = (await readdir(MIGRATION_DIR)).filter((f) => f.endsWith(".sql"));
 
