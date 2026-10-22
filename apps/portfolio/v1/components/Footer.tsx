@@ -44,11 +44,11 @@ function Footer() {
     <footer className="relative py-16 bg-gray-950 overflow-hidden">
       {/* Tech circuit pattern overlay */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute left-1/4 top-0 h-full w-px bg-gradient-to-b from-transparent via-cyan-500 to-transparent" />
-        <div className="absolute left-2/4 top-0 h-full w-px bg-gradient-to-b from-transparent via-cyan-500 to-transparent" />
-        <div className="absolute left-3/4 top-0 h-full w-px bg-gradient-to-b from-transparent via-cyan-500 to-transparent" />
-        <div className="absolute top-1/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
-        <div className="absolute top-2/3 left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent" />
+        <div className="absolute left-1/4 top-0 h-full w-px bg-linear-to-b from-transparent via-cyan-500 to-transparent" />
+        <div className="absolute left-2/4 top-0 h-full w-px bg-linear-to-b from-transparent via-cyan-500 to-transparent" />
+        <div className="absolute left-3/4 top-0 h-full w-px bg-linear-to-b from-transparent via-cyan-500 to-transparent" />
+        <div className="absolute top-1/3 left-0 w-full h-px bg-linear-to-r from-transparent via-cyan-500 to-transparent" />
+        <div className="absolute top-2/3 left-0 w-full h-px bg-linear-to-r from-transparent via-cyan-500 to-transparent" />
         {particles}
       </div>
       <div className="container relative mx-auto px-6">
@@ -62,7 +62,7 @@ function Footer() {
           {/* Logo and tagline section */}
           <motion.div variants={itemVariants} className="flex flex-col items-center md:items-start">
             <div className="mb-4 flex items-center">
-              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500">
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-cyan-400 to-purple-500">
                 &lt;Adnan/&gt;
               </span>
             </div>
@@ -161,8 +161,8 @@ function Footer() {
         </motion.div>
       </div>
       {/* Animated glow effect */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent blur-sm"></div>
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent blur-sm"></div>
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-1 bg-linear-to-r from-transparent via-cyan-500 to-transparent blur-sm"></div>
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-linear-to-r from-transparent via-cyan-500 to-transparent blur-sm"></div>
     </footer>
   );
 }

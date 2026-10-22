@@ -203,7 +203,11 @@ importers:
 
   packages/http: {}
 
-  packages/products: {}
+  packages/products:
+    dependencies:
+      '@repo/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/types: {}
 

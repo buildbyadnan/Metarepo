@@ -338,7 +338,7 @@ const CyberParticleBackground = () => {
   return (
     <canvas 
       ref={canvasRef} 
-      className="fixed top-0 left-0 w-full h-full bg-gradient-to-br from-black via-gray-900 to-gray-950 -z-10"
+      className="fixed top-0 left-0 w-full h-full bg-linear-to-br from-black via-gray-900 to-gray-950 -z-10"
       style={{
         background: 'radial-gradient(circle, rgba(0,20,10,1) 0%, rgba(0,10,5,1) 50%, rgba(0,0,0,1) 100%)'
       }}

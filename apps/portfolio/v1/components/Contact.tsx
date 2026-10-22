@@ -75,7 +75,7 @@ function Contact() {
     <section
       id="contact"
       ref={contactRef}
-      className="py-20 md:py-32 bg-gradient-to-b from-gray-900/50 to-gray-950/50"
+      className="py-20 md:py-32 bg-linear-to-b from-gray-900/50 to-gray-950/50"
     >
       <div className="container mx-auto px-6">
         <motion.div

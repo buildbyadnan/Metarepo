@@ -68,7 +68,7 @@ export default function Portfolio() {
       <section
         id="projects"
         ref={projectsRef}
-        className="py-20 md:py-32 bg-gradient-to-b from-gray-900/50 to-gray-950/50"
+        className="py-20 md:py-32 bg-linear-to-b from-gray-900/50 to-gray-950/50"
       >
         <div className="container mx-auto px-6">
           <motion.div
@@ -294,7 +294,7 @@ export default function Portfolio() {
                     </div>
                     <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"
+                        className="h-full bg-linear-to-r from-cyan-400 to-blue-500 rounded-full"
                         initial={{ width: 0 }}
                         whileInView={{ width: `${skill.level}%` }}
                         viewport={{ once: true }}
@@ -342,7 +342,7 @@ export default function Portfolio() {
                     </div>
                     <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full"
+                        className="h-full bg-linear-to-r from-cyan-400 to-indigo-500 rounded-full"
                         initial={{ width: 0 }}
                         whileInView={{ width: `${skill.level}%` }}
                         viewport={{ once: true }}
@@ -390,7 +390,7 @@ export default function Portfolio() {
                     </div>
                     <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-emerald-500 rounded-full"
+                        className="h-full bg-linear-to-r from-cyan-400 to-emerald-500 rounded-full"
                         initial={{ width: 0 }}
                         whileInView={{ width: `${skill.level}%` }}
                         viewport={{ once: true }}
@@ -437,7 +437,7 @@ export default function Portfolio() {
                     </div>
                     <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-orange-500 rounded-full"
+                        className="h-full bg-linear-to-r from-cyan-400 to-orange-500 rounded-full"
                         initial={{ width: 0 }}
                         whileInView={{ width: `${skill.level}%` }}
                         viewport={{ once: true }}
@@ -491,7 +491,7 @@ export default function Portfolio() {
       {/* Achievements Section */}
       <section
         id="achievements"
-        className="py-20 md:py-32 bg-gradient-to-b from-gray-900/50 to-gray-950/50"
+        className="py-20 md:py-32 bg-linear-to-b from-gray-900/50 to-gray-950/50"
       >
         <div className="container mx-auto px-6">
           <motion.div
@@ -597,7 +597,7 @@ export default function Portfolio() {
       {/* Career Objective Section */}
       <section
         id="career"
-        className="py-20 md:py-32 bg-gradient-to-b from-gray-900/50 to-gray-950/50"
+        className="py-20 md:py-32 bg-linear-to-b from-gray-900/50 to-gray-950/50"
       >
         <div className="container mx-auto px-6">
           <motion.div

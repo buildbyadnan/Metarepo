@@ -28,7 +28,7 @@ function Hero() {
   return (
     <section id="home" ref={homeRef} className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden bg-black">
       {/* Matrix-like background effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black opacity-80 z-0"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-gray-900 via-black to-black opacity-80 z-0"></div>
       {/* Animated code lines in background */}
       <div className="absolute inset-0 opacity-20 z-0">
         <div className="code-rain"></div>
@@ -93,7 +93,7 @@ function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6, duration: 0.8 }}
           >
-            <div className="tech-terminal-header absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500/0 via-green-500/70 to-green-500/0"></div>
+            <div className="tech-terminal-header absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-green-500/0 via-green-500/70 to-green-500/0"></div>
             <p className="text-lg text-gray-400 font-mono text-left">
               <span className="text-green-400">{">"}</span> A passionate full-stack developer and founder of 
               <span className="text-cyan-400"> Electroplix</span>, currently pursuing a degree in 

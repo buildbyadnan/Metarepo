@@ -5,15 +5,15 @@ import Section from "@/components/ui/Section";
 import stackData from "@/data/tech-stack.json";
 import {
   SiTypescript, SiJavascript, SiPython, SiC,
-  SiHtml5, SiCss3, SiReact, SiNextdotjs, SiVuedotjs, SiTailwindcss,
+  SiHtml5, SiCss, SiReact, SiNextdotjs, SiVuedotjs, SiTailwindcss,
   SiNodedotjs, SiExpress, SiFastapi, SiDjango, SiBun,
   SiPostgresql, SiMysql, SiMongodb, SiRedis, SiSupabase, SiFirebase, SiPrisma,
-  SiAmazonwebservices, SiGooglecloud, SiCloudflare, SiVercel, SiNetlify,
+  SiGooglecloud, SiCloudflare, SiVercel, SiNetlify,
   SiDocker, SiKubernetes, SiApachekafka, SiGithub, SiTerraform, SiGit, SiLinux, SiGnubash,
   SiPostman, SiFigma, SiNotion, SiArduino
 } from "react-icons/si";
 import { VscAzure, VscCode } from "react-icons/vsc";
-import { FaJava, FaCode, FaServer, FaDatabase, FaCloud, FaPalette, FaWrench, FaToolbox, FaBolt, FaCog } from "react-icons/fa";
+import { FaAws, FaJava, FaCode, FaServer, FaDatabase, FaCloud, FaPalette, FaWrench, FaToolbox, FaBolt, FaCog } from "react-icons/fa";
 import { DiRust } from "react-icons/di";
 
 type TechItem = { name: string; level: number; iconKey: string; color: string };
@@ -28,7 +28,7 @@ const iconMap: Record<string, { icon: React.ReactNode; gradient: string }> = {
   rust: { icon: <DiRust />, gradient: "from-orange-400 to-orange-600" },
   c: { icon: <SiC />, gradient: "from-blue-500 to-blue-700" },
   html: { icon: <SiHtml5 />, gradient: "from-orange-500 to-orange-600" },
-  css: { icon: <SiCss3 />, gradient: "from-blue-400 to-blue-600" },
+  css: { icon: <SiCss />, gradient: "from-blue-400 to-blue-600" },
   react: { icon: <SiReact />, gradient: "from-cyan-400 to-cyan-500" },
   reactnative: { icon: <SiReact />, gradient: "from-cyan-400 to-purple-500" },
   nextjs: { icon: <SiNextdotjs />, gradient: "from-slate-200 to-slate-400" },
@@ -51,7 +51,7 @@ const iconMap: Record<string, { icon: React.ReactNode; gradient: string }> = {
   firebase: { icon: <SiFirebase />, gradient: "from-yellow-400 to-orange-500" },
   neon: { icon: <FaDatabase />, gradient: "from-green-400 to-cyan-400" },
   cloudflare: { icon: <SiCloudflare />, gradient: "from-orange-400 to-orange-500" },
-  aws: { icon: <SiAmazonwebservices />, gradient: "from-orange-400 to-orange-600" },
+  aws: { icon: <FaAws />, gradient: "from-orange-400 to-orange-600" },
   prisma: { icon: <SiPrisma />, gradient: "from-slate-200 to-slate-400" },
   drizzle: { icon: <FaDatabase />, gradient: "from-green-400 to-lime-400" },
   gcp: { icon: <SiGooglecloud />, gradient: "from-blue-400 via-green-400 to-yellow-400" },
