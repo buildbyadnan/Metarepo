@@ -1,0 +1,35 @@
+{
+  "name": "@repo/portfolio-v1",
+  "sourceRoot": "apps/portfolio/v1",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run build",
+        "cwd": "apps/portfolio/v1"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run dev",
+        "cwd": "apps/portfolio/v1"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run deploy",
+        "cwd": "apps/portfolio/v1"
+      }
+    },
+    "cf-typegen": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run cf-typegen",
+        "cwd": "apps/portfolio/v1"
+      }
+    }
+  }
+}

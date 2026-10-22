@@ -1,0 +1,21 @@
+{
+  "name": "@repo/api-endpoints",
+  "sourceRoot": "packages/api-endpoints/src",
+  "projectType": "library",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec vitest run --passWithNoTests",
+        "cwd": "packages/api-endpoints"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec eslint src/",
+        "cwd": "packages/api-endpoints"
+      }
+    }
+  }
+}

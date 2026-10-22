@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./packages/api-endpoints"
+    },
+    {
+      "path": "./packages/products"
+    },
+    {
+      "path": "./packages/types"
+    },
+    {
+      "path": "./packages/http"
+    }
+  ]
+}

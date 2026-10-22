@@ -1,66 +1,44 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "npmScope": "main-codebase",
-  "defaultBase": "main",
-  "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": [
-        "{projectRoot}/.next",
-        "{projectRoot}/dist",
-        "{projectRoot}/.wrangler"
-      ]
-    },
-    "lint": {
-      "inputs": ["default", "{projectRoot}/.eslintrc.json"]
-    },
-    "test": {
-      "inputs": ["default", "^production"]
-    }
-  },
-  "tasksRunnerOptions": {
-    "default": {
-      "runner": "nx/tasks-runners/default",
-      "options": {
-        "cacheableOperations": ["build", "lint", "test", "deploy"],
-        "parallel": 3
-      }
-    }
-  },
-  "workspaceLayout": {
-    "appsDir": "apps",
-    "libsDir": "libs"
-  },
-  "projects": {
-    "web-v1": "apps/web-v1",
-    "web-v2": "apps/web-v2",
-    "cf-server": "apps/cf-server"
-  },
-  "release": {
-    "version": {
-      "preVersionCommand": "pnpm dlx nx run-many -t build"
-    }
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": ["default"],
+    "sharedGlobals": []
   },
   "plugins": [
     {
-      "plugin": "@nx/rollup/plugin",
+      "plugin": "@nx/js/typescript",
       "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.lib.json",
+          "buildDepsName": "build-deps",
+          "watchDepsName": "watch-deps"
+        }
+      }
+    },
+    {
+      "plugin": "@nx/next/plugin",
+      "options": {
+        "startTargetName": "start",
         "buildTargetName": "build",
+        "devTargetName": "dev",
+        "serveStaticTargetName": "serve-static",
         "buildDepsTargetName": "build-deps",
         "watchDepsTargetName": "watch-deps"
       }
-    },
-    {
-      "plugin": "@nx/eslint/plugin",
-      "options": {
-        "targetName": "lint"
-      }
-    },
-    {
-      "plugin": "@nx/jest/plugin",
-      "options": {
-        "targetName": "test"
+    }
+  ],
+  "analytics": false,
+  "generators": {
+    "@nx/next": {
+      "application": {
+        "style": "css",
+        "linter": "none"
       }
     }
-  ]
+  }
 }
