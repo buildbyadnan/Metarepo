@@ -368,9 +368,14 @@ documentRoutes.get("/:id/content", async (c) => {
   c.header("Content-Length", String(object.size));
   c.header("Cache-Control", "private, max-age=60");
   c.header("ETag", object.httpEtag);
-  // Override the global default-src 'none': `sandbox` is the proven pattern
-  // for serving user files (no scripts execute, inline PDF viewing works).
-  c.header("Content-Security-Policy", "sandbox");
+  // Override the global default-src 'none': this response is meant to be
+  // framed by the web app's preview iframe. X-Frame-Options is skipped
+  // globally for `/content` (it cannot allow-list origins), so framing is
+  // governed here by `frame-ancestors` — the web origin(s) from
+  // ALLOWED_ORIGINS, plus 'self'. The previous `sandbox` policy blocked
+  // Chrome's PDF viewer inside the framed preview.
+  const frameAncestors = ["'self'", ...parseAllowedOrigins(c.env.ALLOWED_ORIGINS)].join(" ");
+  c.header("Content-Security-Policy", `frame-ancestors ${frameAncestors}`);
 
   return c.body(object.body, 200);
 });

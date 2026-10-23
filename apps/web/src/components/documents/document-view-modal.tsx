@@ -128,7 +128,8 @@ export function DocumentViewModal({ doc, onClose }: Props) {
               src={documentContentUrl(doc.id)}
               title={doc.title}
               className="h-full w-full border-0"
-              // The content route serves CSP: sandbox, so no scripts run.
+              // The content route scopes framing with CSP `frame-ancestors`
+              // (this app's origin only) and serves PDFs with nosniff.
             />
           ) : loadError ? (
             <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">

@@ -81,7 +81,13 @@ app.use("/*", async (c, next) => {
 });
 app.use("/*", async (c, next) => {
   c.header("X-Content-Type-Options", "nosniff");
-  c.header("X-Frame-Options", "DENY");
+  // The document content route is embedded by the web app's preview iframe.
+  // X-Frame-Options cannot allow-list origins, so that route opts out here
+  // and declares a CSP `frame-ancestors` policy instead; every other
+  // response (never meant to be framed) stays DENY.
+  if (!c.req.path.endsWith("/content")) {
+    c.header("X-Frame-Options", "DENY");
+  }
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
   c.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   c.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
