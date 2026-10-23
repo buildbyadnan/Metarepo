@@ -15,6 +15,12 @@
       "database_id": "a0827dc6-cfda-423a-9b09-c0fec43dab30",
     },
   ],
+  "r2_buckets": [
+    {
+      "binding": "DOCS_BUCKET",
+      "bucket_name": "metarepo-docs-adnanbuilds-online",
+    },
+  ],
   "observability": {
     "enabled": true,
   },

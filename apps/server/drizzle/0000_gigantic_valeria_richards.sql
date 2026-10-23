@@ -11,6 +11,23 @@ CREATE TABLE `accounts` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `provider_account_idx` ON `accounts` (`provider`,`provider_account_id`);--> statement-breakpoint
 CREATE INDEX `accounts_user_id_idx` ON `accounts` (`user_id`);--> statement-breakpoint
+CREATE TABLE `documents` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`title` text NOT NULL,
+	`description` text,
+	`category` text DEFAULT 'other' NOT NULL,
+	`kind` text NOT NULL,
+	`original_name` text NOT NULL,
+	`r2_key` text NOT NULL,
+	`size` integer NOT NULL,
+	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `documents_r2_key_unique` ON `documents` (`r2_key`);--> statement-breakpoint
+CREATE INDEX `documents_user_id_idx` ON `documents` (`user_id`);--> statement-breakpoint
+CREATE INDEX `documents_created_at_idx` ON `documents` (`created_at`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
@@ -26,17 +43,9 @@ CREATE TABLE `users` (
 	`email` text NOT NULL,
 	`name` text NOT NULL,
 	`picture` text,
+	`notify_updates` integer DEFAULT false NOT NULL,
 	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) NOT NULL,
 	`updated_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
-CREATE TABLE `waitlist` (
-	`email` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
-	`picture` text,
-	`status` text DEFAULT 'pending' NOT NULL,
-	`joined_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')) NOT NULL
-);
---> statement-breakpoint
-CREATE INDEX `waitlist_status_idx` ON `waitlist` (`status`);
+CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);

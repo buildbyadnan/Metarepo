@@ -4,15 +4,19 @@ import { logger } from "hono/logger";
 import { bodyLimit } from "hono/body-limit";
 import { initDbConnect } from "./db";
 import { authRoutes } from "./routes/auth";
+import { documentRoutes } from "./routes/documents";
 import { healthRoutes } from "./routes/health";
 import { logError } from "./lib/logger";
 import { parseAllowedOrigins } from "./lib/origins";
 import { validateEnv } from "./env";
+import { MAX_UPLOAD_BYTES } from "./constants";
 import type { Bindings, Variables } from "./types";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-const MAX_BODY_BYTES = 1024 * 1024; // 1 MB
+const MAX_BODY_BYTES = 1024 * 1024; // 1 MB — global cap for JSON/headers routes
+// Multipart overhead (boundaries + text fields) rides on top of the file.
+const MAX_UPLOAD_BODY_BYTES = MAX_UPLOAD_BYTES + 1024 * 1024; // 11 MB
 let kvRateLimitWarningShown = false;
 let envValidated = false;
 
@@ -58,7 +62,22 @@ function getClientIp(c: { req: { header: (name: string) => string | undefined } 
 }
 
 app.use("/*", logger());
-app.use("/*", bodyLimit({ maxSize: MAX_BODY_BYTES }));
+// Global 1 MB body cap; the documents upload route gets its own 11 MB cap
+// (10 MB file + multipart overhead) — everything else stays small.
+app.use("/*", async (c, next) => {
+  const isUpload = c.req.method === "POST" && c.req.path === "/documents";
+  return bodyLimit({
+    maxSize: isUpload ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES,
+    onError: (c) =>
+      c.json(
+        {
+          error: "file_too_large",
+          message: `Requests are limited to ${isUpload ? "11 MB (10 MB file + form data)" : "1 MB"}.`,
+        },
+        413,
+      ),
+  })(c, next);
+});
 app.use("/*", async (c, next) => {
   c.header("X-Content-Type-Options", "nosniff");
   c.header("X-Frame-Options", "DENY");
@@ -75,7 +94,7 @@ app.use("/*", async (c, next) => {
   return cors({
     origin: (origin) => (allowedOrigins.includes(origin) ? origin : null),
     credentials: true,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     maxAge: 86400,
   })(c, next);
@@ -109,8 +128,20 @@ app.use("/auth/me", async (c, next) => {
   await next();
 });
 
+app.use("/documents", async (c, next) => {
+  if (c.req.method !== "POST" || c.req.path !== "/documents") {
+    return next();
+  }
+  const ip = getClientIp(c);
+  if (!(await checkRateLimitKV(c.env.RATE_LIMIT_KV, `upload:${ip}`, 10, 60))) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+  await next();
+});
+
 app.route("/", healthRoutes);
 app.route("/auth", authRoutes);
+app.route("/documents", documentRoutes);
 
 app.onError((err, c) => {
   logError("Unhandled error", err);

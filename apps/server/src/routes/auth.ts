@@ -9,18 +9,17 @@ import {
   refreshAccessToken,
 } from "@repo/auth";
 import { encrypt, decrypt } from "@repo/http";
-import { users, accounts, sessions, waitlist } from "../db/schema";
+import { users, accounts, sessions } from "../db/schema";
 import { eq, and, lt } from "drizzle-orm";
 import { hashSession } from "../lib/crypto";
+import { getSessionUserId } from "../lib/session";
 import { logError } from "../lib/logger";
-import { parseAllowedOrigins } from "../lib/origins";
+import { isForeignOrigin, parseAllowedOrigins } from "../lib/origins";
 import { SESSION_TOKEN_LENGTH } from "../constants";
 import type { Bindings, Variables } from "../types";
 
 // Session lifetime in seconds (default: 7 days). Customize as needed.
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
-
-const WAITLIST_APPROVED = "approved";
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 320;
@@ -178,9 +177,7 @@ authRoutes.get("/google/callback", async (c) => {
             expiresAt: Math.floor(Date.now() / 1000) + tokens.expires_in,
           },
         }),
-      // Every Google signup lands on the waitlist. onConflictDoNothing keeps an
-      // already-approved status untouched on subsequent logins.
-      db.insert(waitlist).values({ email, name, picture }).onConflictDoNothing(),
+      // Every Google signup creates/refreshes the user row; no gating tables.
       db.delete(sessions).where(eq(sessions.userId, googleUser.id)),
       db.insert(sessions).values({ id: sessionHash, userId: googleUser.id, expiresAt }),
     ]);
@@ -193,17 +190,8 @@ authRoutes.get("/google/callback", async (c) => {
       maxAge: SESSION_MAX_AGE,
     });
 
-    // Waitlisted users go straight to their waitlist status page;
-    // approved users land on the main site.
-    const waitlistEntry = await db
-      .select({ status: waitlist.status })
-      .from(waitlist)
-      .where(eq(waitlist.email, email))
-      .get();
-
-    return c.redirect(
-      waitlistEntry?.status === WAITLIST_APPROVED ? webUrl : `${webUrl}/waitlist`,
-    );
+    // Signed in — straight into the product.
+    return c.redirect(`${webUrl}/documents`);
   } catch (err) {
     logError("Auth callback failed", err);
     return c.redirect(`${webUrl}?auth_error=callback_failed`);
@@ -266,6 +254,7 @@ authRoutes.get("/me", async (c) => {
       email: users.email,
       name: users.name,
       picture: users.picture,
+      notifyUpdates: users.notifyUpdates,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -274,25 +263,37 @@ authRoutes.get("/me", async (c) => {
 
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-  const waitlistEntry = await db
-    .select({ status: waitlist.status })
-    .from(waitlist)
-    .where(eq(waitlist.email, user.email))
-    .get();
+  return c.json({ user });
+});
 
-  return c.json({
-    user,
-    // Fail closed: no entry (or anything not explicitly approved) = waitlisted.
-    waitlisted: waitlistEntry?.status !== WAITLIST_APPROVED,
-    waitlistStatus: waitlistEntry?.status ?? null,
-  });
+/**
+ * PATCH /auth/me — account preferences for the signed-in user.
+ * Body: { notifyUpdates: boolean }
+ */
+authRoutes.patch("/me", async (c) => {
+  if (isForeignOrigin(c.req.header("origin"), parseAllowedOrigins(c.env.ALLOWED_ORIGINS))) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = (await c.req.json().catch(() => null)) as { notifyUpdates?: unknown } | null;
+  if (!body || typeof body.notifyUpdates !== "boolean") {
+    return c.json({ error: "notifyUpdates must be a boolean" }, 400);
+  }
+
+  await c.var.db
+    .update(users)
+    .set({ notifyUpdates: body.notifyUpdates, updatedAt: new Date().toISOString() })
+    .where(eq(users.id, userId))
+    .run();
+
+  return c.json({ notifyUpdates: body.notifyUpdates });
 });
 
 authRoutes.post("/logout", async (c) => {
-  const origin = c.req.header("origin");
-  const allowedOrigins = parseAllowedOrigins(c.env.ALLOWED_ORIGINS);
-
-  if (origin && !allowedOrigins.includes(origin)) {
+  if (isForeignOrigin(c.req.header("origin"), parseAllowedOrigins(c.env.ALLOWED_ORIGINS))) {
     return c.json({ error: "Forbidden" }, 403);
   }
 

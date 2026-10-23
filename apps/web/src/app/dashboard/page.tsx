@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { AppNav } from "@/components/app-nav";
 
 export default function DashboardPage() {
-  const { user, loading, waitlisted } = useAuth();
+  const { user, loading, setNotifyUpdates } = useAuth();
   const router = useRouter();
+  const [prefSaving, setPrefSaving] = useState(false);
+  const [prefError, setPrefError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
       router.push("/");
-    } else if (waitlisted) {
-      // Waitlisted accounts are not allowed past this point.
-      router.replace("/waitlist");
     }
-  }, [user, loading, waitlisted, router]);
+  }, [user, loading, router]);
+
+  const onToggleNotify = async (checked: boolean) => {
+    setPrefSaving(true);
+    setPrefError(null);
+    const saved = await setNotifyUpdates(checked);
+    setPrefSaving(false);
+    if (!saved) {
+      setPrefError("Couldn't save your preference — please try again.");
+    }
+  };
 
   if (loading) {
     return (
@@ -223,6 +232,70 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Preferences Card */}
+          <div className="md:col-span-3 relative rounded-2xl border border-slate-900 bg-slate-900/40 p-8 backdrop-blur-sm overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+
+            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-emerald-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+              Preferences
+            </h3>
+
+            <label className="flex items-start gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-900 cursor-pointer group">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={user.notifyUpdates}
+                disabled={prefSaving}
+                onChange={(e) => onToggleNotify(e.target.checked)}
+              />
+              <span
+                aria-hidden="true"
+                className="mt-0.5 h-5 w-5 shrink-0 rounded border border-slate-700 bg-slate-900 flex items-center justify-center transition-colors peer-checked:bg-emerald-500 peer-checked:border-emerald-400 peer-checked:[&>svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-disabled:opacity-60 group-hover:border-slate-500"
+              >
+                <svg
+                  className="h-3 w-3 text-[#04130a] opacity-0 transition-opacity"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+              <span className="text-left">
+                <span className="text-sm font-semibold text-slate-200 block">
+                  Inform me about latest updates or releases
+                </span>
+                <span className="text-xs text-slate-400 mt-1 block">
+                  {prefSaving
+                    ? "Saving…"
+                    : "We'll let you know when MetaRepo ships something new. Saved to your account."}
+                </span>
+              </span>
+            </label>
+            {/* Outside the <label>: clicking the error must not toggle the checkbox. */}
+            {prefError ? (
+              <p className="text-xs text-[#ff6b85] mt-2" role="alert">
+                {prefError}
+              </p>
+            ) : null}
           </div>
         </div>
       </main>

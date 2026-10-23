@@ -6,8 +6,9 @@
   </p>
   <p style="font-size:1rem; color:#444; max-width:600px; margin:0 auto;">
     One open monorepo for everything I build — a dark, green, mono-styled web app
-    where every visitor signs in with Google and lands on the waitlist until
-    approved. Next.js 16 + Hono on Cloudflare Workers, orchestrated with Nx.
+    where every visitor signs in with Google and gets a personal document cloud
+    (PDF &amp; DOCX uploads, private per account). Next.js 16 + Hono on Cloudflare
+    Workers, orchestrated with Nx.
   </p>
   <p>
     <a href="https://metarepo.adnanbuilds.online" style="font-size:1.1rem; font-weight:700; color:#3dff7a;">metarepo.adnanbuilds.online</a>
@@ -21,8 +22,8 @@
 ```
 Metarepo/
 ├── apps/
-│   ├── web/                    # MetaRepo web — landing, waitlist, dashboard (Next.js 16 + Tailwind v4)
-│   └── server/                 # Hono API — Google OAuth, sessions, waitlist (Cloudflare Workers + D1 + Drizzle)
+│   ├── web/                    # MetaRepo web — landing, dashboard, documents (Next.js 16 + Tailwind v4)
+│   └── server/                 # Hono API — Google OAuth, sessions, documents (Cloudflare Workers + D1 + R2 + Drizzle)
 ├── packages/
 │   ├── api-endpoints/          # @repo/api-endpoints — typed API route constants
 │   ├── auth/                   # @repo/auth — Google OAuth (PKCE, state checks, token exchange/refresh)
@@ -38,27 +39,32 @@ Metarepo/
 
 ---
 
-## 🔐 Auth & Waitlist Flow
+## 🔐 Auth & Documents Flow
 
 1. A visitor clicks **Sign in with Google** on the landing page → `GET /auth/google`
    (PKCE + state cookies) → Google consent screen.
 2. The callback upserts the identity (`users` / `accounts`), creates a session
-   cookie, and **adds the email to the `waitlist` table with `status = 'pending'`**.
-3. Waitlisted users are routed to **`/waitlist`** — the dashboard is gated until
-   approval. Approved users go straight to **`/dashboard`**.
-4. You approve people manually (before/during production):
+   cookie, and sends the user straight to **`/documents`** — no waitlist, no gating.
+3. `GET /auth/me` reports `{ user }` (including the `notifyUpdates` preference) so
+   the web app can gate routes client-side; every API call is independently
+   session-checked server-side.
+4. The dashboard holds account preferences — e.g. **"Inform me about latest
+   updates or releases"** (`users.notify_updates`, saved via `PATCH /auth/me`).
 
-   ```bash
-   # via wrangler (D1)
-   npx wrangler d1 execute repo-db --remote \
-     --command="UPDATE waitlist SET status='approved' WHERE email='someone@example.com'"
+### Documents (personal cloud)
 
-   # or via drizzle studio
-   cd apps/server && pnpm studio
-   ```
+- `POST /documents` — multipart upload: PDF/DOCX only (validated by **content**
+  magic bytes, not the filename), max **10 MB per file**, max **30 MB per user**,
+  max **1 GB** system-wide, ≤ 50 files per user. Quota is enforced inside a single
+  guarded INSERT so concurrent uploads cannot race past the ceilings.
+- `GET /documents` — your own list + usage meter; every query is scoped by the
+  session's user id, so foreign document ids return the same 404 as missing ones.
+- `GET /documents/:id/content` — streams the file from the private R2 bucket
+  (PDFs inline in the browser, DOCX as a download). No presigned URLs, ever.
+- `PATCH /documents/:id` — edit title/description/category · `DELETE /documents/:id`
+  — frees the storage.
 
-   `GET /auth/me` reports `{ user, waitlisted, waitlistStatus }` so the web app
-   can gate routes client-side (middleware handles the session-cookie check).
+File bytes live in R2 under `docs/{userId}/{uuid}.{ext}`; metadata lives in D1.
 
 ---
 
@@ -70,6 +76,7 @@ Metarepo/
 | **Backend** | Hono.js 4 on Cloudflare Workers |
 | **Auth** | Google OAuth 2.0 (PKCE) — `packages/auth` |
 | **Database** | Cloudflare D1 + Drizzle ORM |
+| **File storage** | Cloudflare R2 (private bucket) |
 | **Build** | Nx + SWC, pnpm workspaces, TypeScript |
 | **Testing** | Vitest |
 | **CI/CD** | GitHub Actions → OpenNext → Cloudflare Workers |

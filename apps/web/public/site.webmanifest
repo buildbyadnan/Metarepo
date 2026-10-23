@@ -1,11 +1,11 @@
 {
-  "name": "SaaS LaunchKit Pro",
-  "short_name": "LaunchKit",
-  "description": "The modern SaaS starter kit. Authentication, payments, and deployment — handled.",
+  "name": "MetaRepo",
+  "short_name": "MetaRepo",
+  "description": "The Development Universe — a personal document cloud with Google auth.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#4f46e5",
+  "background_color": "#07090a",
+  "theme_color": "#10b981",
   "icons": [
     {
       "src": "/favicon.ico",

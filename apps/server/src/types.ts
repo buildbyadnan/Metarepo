@@ -1,7 +1,8 @@
 import type { initDbConnect } from "./db";
 
-export type Bindings = Env & {
+export type Bindings = CloudflareBindings & {
   DB: D1Database;
+  DOCS_BUCKET: R2Bucket;
   RATE_LIMIT_KV?: KVNamespace;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;

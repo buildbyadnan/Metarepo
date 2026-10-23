@@ -1,4 +1,4 @@
-# SaaS LaunchKit Pro — Architecture
+# MetaRepo — Architecture
 
 ## Tech Stack
 
@@ -10,7 +10,6 @@
 | **Database** | Cloudflare D1           | Serverless SQLite at the edge            |
 | **ORM**      | Drizzle ORM             | Type-safe SQL queries                    |
 | **Auth**     | Google OAuth 2.0 + PKCE | Secure, industry-standard authentication |
-| **Payments** | Razorpay                | Order creation, verification, webhooks   |
 | **Runtime**  | Cloudflare Workers      | Global edge deployment                   |
 | **Build**    | Nx + SWC                | Monorepo orchestration, fast compilation |
 | **CI/CD**    | GitHub Actions          | Automated testing and deployment         |
@@ -21,7 +20,7 @@
 ## Project Structure
 
 ```
-saas-launchkit-pro/
+metarepo/
 ├── apps/
 │   ├── web/                                  # Next.js 16 Frontend
 │   │   ├── src/
@@ -39,7 +38,6 @@ saas-launchkit-pro/
 │   │   │   │   │   └── error.tsx             # Dashboard error boundary
 │   │   │   ├── components/
 │   │   │   │   ├── landing-page.tsx          # Hero + features + pricing
-│   │   │   │   ├── razorpay-button.tsx       # Razorpay checkout button
 │   │   │   │   ├── signup-modal.tsx          # Auth modal
 │   │   │   │   ├── modal.tsx                 # Reusable dialog component
 │   │   │   │   └── google-button.tsx         # Google sign-in button
@@ -61,7 +59,7 @@ saas-launchkit-pro/
 │       │   ├── env.ts                        # Environment validation
 │       │   ├── routes/
 │       │   │   ├── auth.ts                   # Auth endpoints
-│       │   │   ├── payment.ts                # Payment endpoints
+│       │   │   ├── documents.ts              # Document endpoints
 │       │   │   └── health.ts                 # Health check
 │       │   ├── db/
 │       │   │   ├── index.ts                  # D1 + Drizzle init
@@ -70,9 +68,7 @@ saas-launchkit-pro/
 │       │   │       ├── users.ts              # User profiles
 │       │   │       ├── accounts.ts           # OAuth accounts
 │       │   │       ├── sessions.ts           # Session tokens
-│       │   │       └── orders.ts             # Payment orders
-│       │   ├── config/
-│       │   │   └── products.ts              # Re-exports from @repo/products
+│       │   │       └── documents.ts          # Document metadata
 │       │   └── lib/
 │       │       ├── crypto.ts                 # HMAC-SHA256 hashing
 │       │       ├── logger.ts                 # Structured JSON logging
@@ -89,28 +85,10 @@ saas-launchkit-pro/
 │   │       ├── index.ts                      # Public exports
 │   │       └── types.ts                      # GoogleUser, GoogleTokenResponse
 │   │
-│   ├── payments/                             # @repo/payments — Razorpay helpers
-│   │   └── src/
-│   │       ├── razorpay.ts                   # Order creation, signature verification
-│   │       ├── razorpay.test.ts              # Payment tests
-│   │       ├── webhook.ts                    # Webhook signature verification
-│   │       ├── index.ts                      # Public exports
-│   │       └── types.ts                      # Razorpay type definitions
-│   │
 │   ├── http/                                 # @repo/http — Shared utilities
 │   │   └── src/
 │   │       ├── index.ts                      # fetchWithTimeout, hmacHex, encrypt/decrypt
 │   │       └── index.test.ts                 # HTTP utility tests
-│   │
-│   ├── types/                                # @repo/types — Shared TypeScript types
-│   │   └── src/
-│   │       ├── index.ts                      # User, Product, PaymentStatus
-│   │       └── razorpay.ts                   # RazorpayOrder, RazorpayPayment
-│   │
-│   ├── products/                             # @repo/products — Product catalog
-│   │   └── src/
-│   │       ├── index.ts                      # PRODUCTS config, getProductById
-│   │       └── index.test.ts                 # Product tests
 │   │
 │   └── api-endpoints/                        # @repo/api-endpoints — Route constants
 │       └── src/
@@ -206,11 +184,14 @@ The auth system implements **Google OAuth 2.0 with PKCE** — the industry stand
 | `GET`  | `/auth/google`          | No   | Initiates Google OAuth flow — redirects to Google           |
 | `GET`  | `/auth/google/callback` | No   | OAuth callback — exchanges code, creates session, redirects |
 | `GET`  | `/auth/me`              | Yes  | Returns current user profile                                |
+| `PATCH` | `/auth/me`             | Yes  | Updates profile fields (currently: notifyUpdates boolean)   |
 | `POST` | `/auth/logout`          | Yes  | Destroys session and clears cookie                          |
 | `POST` | `/auth/refresh`         | Yes  | Refreshes expired Google tokens using stored refresh token  |
-| `POST` | `/payments/create-order`| Yes* | Creates a Razorpay order (*optional for anonymous purchases)|
-| `POST` | `/payments/verify-order`| Yes  | Verifies payment signature and updates order status         |
-| `POST` | `/payments/webhook`     | No   | Razorpay webhook handler (captured/failed events)           |
+| `GET`  | `/documents`            | Yes  | Lists the signed-in user's documents + storage usage        |
+| `POST` | `/documents`            | Yes  | Upload (multipart file + title/description/category); 10 MB/file, 30 MB/user, 50 files |
+| `GET`  | `/documents/:id/content` | Yes | Streams the file from private R2 (inline; ?download=1 → attachment) |
+| `PATCH` | `/documents/:id`       | Yes  | Updates title / description / category                      |
+| `DELETE` | `/documents/:id`      | Yes  | Deletes metadata + R2 object (204 No Content)               |
 
 ### Request/Response Examples
 
@@ -227,6 +208,7 @@ curl -H "Authorization: Bearer <session-token>" http://localhost:8787/auth/me
     "email": "user@gmail.com",
     "name": "John Doe",
     "picture": "https://lh3.googleusercontent.com/...",
+    "notifyUpdates": false,
     "createdAt": "2026-07-01T12:00:00.000Z"
   }
 }
@@ -244,24 +226,28 @@ curl -X POST -H "Cookie: session=<token>" http://localhost:8787/auth/logout
 }
 ```
 
-#### `POST /payments/create-order`
+#### `POST /documents` (upload)
+
+Returns **201 Created** with the stored document metadata.
 
 ```bash
-curl -X POST http://localhost:8787/payments/create-order \
-  -H "Content-Type: application/json" \
-  -d '{"productId": "starter", "productName": "SaaS LaunchKit Pro", "amount": 59, "currency": "USD"}'
+curl -X POST https://metarepo-api.adnanbuilds-online/documents \
+  -H "Content-Type: multipart/form-data" \
+  --cookie "session=..." \
+  -F "file=@report.pdf" \
+  -F "title=Q4 Report" \
+  -F "category=report"
 ```
 
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "order_abc123",
-    "razorpayOrderId": "order_xyz789",
-    "amount": 999,
-    "currency": "INR",
-    "keyId": "rzp_test_..."
-  }
+  "id": "3f1c9a2e-6b7d-4e8f-9a0b-1c2d3e4f5a6b",
+  "title": "Q4 Report",
+  "category": "report",
+  "kind": "pdf",
+  "originalName": "report.pdf",
+  "size": 1048576,
+  "createdAt": "2026-10-01T12:00:00.000Z"
 }
 ```
 
@@ -281,6 +267,7 @@ curl -X POST http://localhost:8787/payments/create-order \
 │ picture     TEXT     │   │   │ provider_account_id TEXT │  │
 │ created_at  TEXT     │   │   │ refresh_token TEXT      │  │
 │ updated_at  TEXT     │   │   │ expires_at   INTEGER    │  │
+│ notify_updates INTEGER│   │   │ created_at   TEXT        │  │
 └─────────────────────┘   │   │ created_at   TEXT        │  │
                           │   └─────────────────────────┘  │
                           │                                 │
@@ -294,24 +281,18 @@ curl -X POST http://localhost:8787/payments/create-order \
                               └─────────────────────────┘
 
 ┌─────────────────────┐
-│       orders         │
+│      documents       │
 ├─────────────────────┤
 │ id          TEXT PK  │
-│ user_id     TEXT FK ─│──▶ users.id (nullable)
-│ product_id  TEXT     │
-│ product_name TEXT    │
-│ amount      INTEGER  │
-│ currency    TEXT     │
-│ status      TEXT     │
-│ razorpay_order_id TEXT│
-│ razorpay_payment_id TEXT│
-│ razorpay_signature TEXT│
-│ paid_at     TEXT     │
-│ failure_reason TEXT  │
-│ customer_name TEXT   │
-│ customer_email TEXT  │
+│ user_id     TEXT FK ─│──▶ users.id
+│ title       TEXT     │
+│ description TEXT     │
+│ category    TEXT     │
+│ kind        TEXT     │
+│ original_name TEXT   │
+│ r2_key      TEXT UQ  │
+│ size        INTEGER  │
 │ created_at  TEXT     │
-│ updated_at  TEXT     │
 └─────────────────────┘
 ```
 
@@ -327,6 +308,7 @@ curl -X POST http://localhost:8787/payments/create-order \
 | `picture`    | TEXT | Nullable                              | Profile picture URL   |
 | `created_at` | TEXT | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | Account creation time |
 | `updated_at` | TEXT | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | Last profile update   |
+| `notify_updates` | INTEGER | Nullable, DEFAULT `1`           | "Notify me about product updates" preference (1 = on) |
 
 #### `accounts`
 
@@ -353,26 +335,24 @@ curl -X POST http://localhost:8787/payments/create-order \
 
 **Indexes:** `INDEX(user_id)`, `INDEX(expires_at)`
 
-#### `orders`
+#### `documents`
 
-| Column                | Type    | Constraints                        | Description                    |
-| --------------------- | ------- | ---------------------------------- | ------------------------------ |
-| `id`                  | TEXT    | PRIMARY KEY                        | Internal order ID              |
-| `user_id`             | TEXT    | Nullable, FK → `users.id`          | Purchasing user (nullable for anonymous) |
-| `product_id`          | TEXT    | NOT NULL                           | Product identifier             |
-| `product_name`        | TEXT    | NOT NULL                           | Product display name           |
-| `amount`              | INTEGER | NOT NULL                           | Amount in smallest currency unit |
-| `currency`            | TEXT    | NOT NULL                           | Currency code (e.g., `INR`)    |
-| `status`              | TEXT    | NOT NULL, DEFAULT `pending`        | Order status                   |
-| `razorpay_order_id`   | TEXT    | Nullable                           | Razorpay order ID              |
-| `razorpay_payment_id` | TEXT    | Nullable                           | Razorpay payment ID            |
-| `razorpay_signature`  | TEXT    | Nullable                           | Payment verification signature |
-| `paid_at`             | TEXT    | Nullable                           | Payment completion time        |
-| `failure_reason`      | TEXT    | Nullable                           | Payment failure description    |
-| `customer_name`       | TEXT    | Nullable                           | Customer name                  |
-| `customer_email`      | TEXT    | Nullable                           | Customer email                 |
-| `created_at`          | TEXT    | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | Order creation time         |
-| `updated_at`          | TEXT    | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | Last update time            |
+| Column         | Type    | Constraints                                 | Description                              |
+| -------------- | ------- | ------------------------------------------- | ---------------------------------------- |
+| `id`           | TEXT    | PRIMARY KEY                                 | Document ID (UUID)                       |
+| `user_id`      | TEXT    | NOT NULL, FK → `users.id` ON DELETE CASCADE | Owner reference                          |
+| `title`        | TEXT    | NOT NULL                                    | User-provided title                      |
+| `description`  | TEXT    | Nullable                                    | Optional description                     |
+| `category`     | TEXT    | Nullable                                    | Optional category                        |
+| `kind`         | TEXT    | NOT NULL                                    | File kind (`pdf` / `docx`, magic-byte validated) |
+| `original_name`| TEXT    | NOT NULL                                    | Original filename as uploaded            |
+| `r2_key`       | TEXT    | NOT NULL, UNIQUE                            | R2 object key                            |
+| `size`         | INTEGER | NOT NULL                                    | File size in bytes (10 MB/file max)      |
+| `created_at`   | TEXT    | NOT NULL, DEFAULT `CURRENT_TIMESTAMP`       | Upload time                              |
+
+**Indexes:** `UNIQUE(r2_key)`, `INDEX(user_id)`
+
+File bytes live in R2 under `docs/{userId}/{uuid}.{ext}` — the key is never exposed publicly; content is only served through the authenticated `GET /documents/:id/content` endpoint. Every query is scoped by `user_id` (30 MB / 50 files per user).
 
 ---
 
@@ -419,7 +399,7 @@ This codebase has been **audited for production use**. Every security decision i
 
 | Feature                | Implementation                                                       |
 | ---------------------- | -------------------------------------------------------------------- |
-| **Rate Limiting**      | KV-backed: configurable limits on OAuth, session, and payment endpoints |
+| **Rate Limiting**      | KV-backed: configurable limits on OAuth and session endpoints            |
 | **CORS**               | Configurable allowed origins, credentials enabled                    |
 | **Body Size Limit**    | 1MB maximum request body via Hono bodyLimit middleware               |
 | **Input Validation**   | Email format, name sanitization, picture URL validation              |
@@ -427,7 +407,6 @@ This codebase has been **audited for production use**. Every security decision i
 | **CSRF on Logout**     | Origin header validation on state-changing endpoints                 |
 | **Foreign Keys**       | `PRAGMA foreign_keys = ON` — cascading deletes enforced              |
 | **Secret Validation**  | SESSION_SECRET must be ≥32 characters — fails closed if missing      |
-| **Idempotent Orders**  | Duplicate pending orders for same product+user return existing order |
 
 ---
 
@@ -444,9 +423,6 @@ This codebase has been **audited for production use**. Every security decision i
 | `ALLOWED_ORIGINS`       | Yes      | Comma-separated allowed origins (e.g., `http://localhost:3000,https://yourapp.com`) |
 | `WEB_APP_URL`           | Yes      | Frontend URL for post-auth redirect (e.g., `http://localhost:3000`)                 |
 | `SESSION_SECRET`        | Yes      | Cryptographic secret for HMAC-SHA256 (min 32 chars)                                 |
-| `RAZORPAY_KEY_ID`       | Yes      | Razorpay API key ID (test or live mode)                                             |
-| `RAZORPAY_KEY_SECRET`   | Yes      | Razorpay API key secret                                                             |
-| `RAZORPAY_WEBHOOK_SECRET`| Yes     | Razorpay webhook verification secret                                                |
 
 #### Frontend (`apps/web/.env.local`)
 
@@ -458,15 +434,21 @@ This codebase has been **audited for production use**. Every security decision i
 
 ### Wrangler Configuration
 
-The server's `wrangler.jsonc` defines the D1 database binding:
+The server's `wrangler.jsonc` defines the D1 database and R2 bucket bindings:
 
 ```jsonc
 {
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "repo-db",
+      "database_name": "metarepo-db-adnanbuilds-online",
       "database_id": "<your-database-id>",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DOCS_BUCKET",
+      "bucket_name": "metarepo-docs-adnanbuilds-online",
     },
   ],
 }
@@ -514,10 +496,7 @@ npx nx deploy @repo/server
 | Package              | Purpose                              | Key Exports                                                    |
 | -------------------- | ------------------------------------ | -------------------------------------------------------------- |
 | `@repo/auth`         | Google OAuth helpers                 | `generateState`, `validateState`, `getGoogleAuthUrl`, `exchangeCodeForTokens` |
-| `@repo/payments`     | Razorpay integration                 | `createRazorpayOrder`, `verifyPaymentSignature`, `verifyWebhookSignature` |
 | `@repo/http`         | Shared HTTP utilities                | `fetchWithTimeout`, `hmacHex`, `constantTimeCompare`, `encrypt`, `decrypt` |
-| `@repo/types`        | Shared TypeScript types              | `User`, `Product`, `RazorpayOrder`, `PaymentStatus`           |
-| `@repo/products`     | Product catalog                      | `PRODUCTS`, `getProductById`                                   |
 | `@repo/api-endpoints`| API route constants                  | `API_ENDPOINTS`                                                |
 
 ### Extending the Auth System
@@ -558,7 +537,7 @@ npx nx deploy @repo/server
 ```bash
 # 1. Create D1 database
 cd apps/server
-npx wrangler d1 create repo-db
+npx wrangler d1 create metarepo-db-adnanbuilds-online
 
 # 2. Update database_id in wrangler.jsonc
 
@@ -568,9 +547,6 @@ npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put ALLOWED_ORIGINS
 npx wrangler secret put WEB_APP_URL
 npx wrangler secret put SESSION_SECRET
-npx wrangler secret put RAZORPAY_KEY_ID
-npx wrangler secret put RAZORPAY_KEY_SECRET
-npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 
 # 4. Run initial migration (select 0, then remote)
 npm run migrate

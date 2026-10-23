@@ -1,6 +1,6 @@
 # Setup Guide
 
-Complete step-by-step instructions to get SaaS LaunchKit Pro running locally.
+Complete step-by-step instructions to get MetaRepo running locally.
 
 ---
 
@@ -14,9 +14,8 @@ Complete step-by-step instructions to get SaaS LaunchKit Pro running locally.
 
 You also need accounts for:
 
-- **Cloudflare** — Workers + D1 database (free tier works)
+- **Cloudflare** — Workers + D1 + R2 database (free tier works)
 - **Google Cloud Console** — OAuth 2.0 credentials
-- **Razorpay** — Payment gateway (test mode for development)
 
 ---
 
@@ -48,9 +47,6 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 ALLOWED_ORIGINS=http://localhost:3000
 WEB_APP_URL=http://localhost:3000
 SESSION_SECRET=your-session-secret-min-32-chars
-RAZORPAY_KEY_ID=rzp_test_your-key-id
-RAZORPAY_KEY_SECRET=your-razorpay-key-secret
-RAZORPAY_WEBHOOK_SECRET=your-razorpay-webhook-secret
 ```
 
 Generate a secure session secret:
@@ -87,28 +83,13 @@ NEXT_PUBLIC_APP_NAME=YourBrandName
 
 ---
 
-## 4. Razorpay Setup
-
-1. Go to [Razorpay Dashboard](https://dashboard.razorpay.com/)
-2. Sign up or log in
-3. Go to **Settings > API Keys**
-4. Generate **Test Mode** keys
-5. Copy **Key ID** and **Key Secret** into `.dev.vars`
-6. For webhooks (optional for local dev):
-   - Go to **Settings > Webhooks**
-   - Add webhook URL: `https://your-production-domain.com/payments/webhook`
-   - Select events: `payment.captured`, `payment.failed`
-   - Copy the **Webhook Secret** into `.dev.vars`
-
----
-
-## 5. Database Setup
+## 4. Database Setup
 
 ### Create D1 Database
 
 ```bash
 cd apps/server
-npx wrangler d1 create repo-db
+npx wrangler d1 create metarepo-db-adnanbuilds-online
 ```
 
 Copy the `database_id` from the output into `apps/server/wrangler.jsonc`.
@@ -128,15 +109,26 @@ Or run directly without the interactive prompt:
 
 ```bash
 # Local development
-npx wrangler d1 execute repo-db --local --file=./drizzle/0000_greedy_maria_hill.sql
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --local --file=./drizzle/0000_gigantic_valeria_richards.sql
 
 # Production (remote)
-npx wrangler d1 execute repo-db --remote --file=./drizzle/0000_greedy_maria_hill.sql
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --remote --file=./drizzle/0000_gigantic_valeria_richards.sql
 ```
+
+### Create the R2 Bucket (document storage)
+
+Uploaded documents live in a private Cloudflare R2 bucket:
+
+```bash
+cd apps/server
+npx wrangler r2 bucket create metarepo-docs-adnanbuilds-online
+```
+
+The `DOCS_BUCKET` binding in `apps/server/wrangler.jsonc` already points at this bucket — files are only served through the authenticated API, never publicly.
 
 ---
 
-## 6. Rate Limiting (Optional)
+## 5. Rate Limiting (Optional)
 
 Rate limiting uses Cloudflare KV. To enable:
 
@@ -162,7 +154,7 @@ Without KV, rate limiting is disabled (the server logs a warning on startup).
 
 ---
 
-## 7. Start Development
+## 6. Start Development
 
 Open two terminals:
 
@@ -180,7 +172,7 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with Google.
 
 ---
 
-## 8. Production Deployment
+## 7. Production Deployment
 
 ### Set Cloudflare Secrets
 
@@ -191,9 +183,6 @@ npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put ALLOWED_ORIGINS
 npx wrangler secret put WEB_APP_URL
 npx wrangler secret put SESSION_SECRET
-npx wrangler secret put RAZORPAY_KEY_ID
-npx wrangler secret put RAZORPAY_KEY_SECRET
-npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
 ```
 
 ### Update CORS
@@ -236,10 +225,6 @@ export const BRANDING = {
 
 Or set the `NEXT_PUBLIC_APP_NAME` environment variable in `apps/web/.env.local`.
 
-### Products & Pricing
-
-Edit `packages/products/src/index.ts` to configure your product catalog, pricing, and features.
-
 ### Dashboard
 
 The dashboard is at `apps/web/src/app/dashboard/page.tsx`. Customize the UI, add settings pages, or extend the security overview.
@@ -260,7 +245,6 @@ npm run migrate
 
 | Issue                                | Solution                                                       |
 | ------------------------------------ | -------------------------------------------------------------- |
-| `Payment gateway not configured`     | Add Razorpay keys to `.dev.vars` or Cloudflare secrets         |
 | Google sign-in fails                 | Verify redirect URIs match exactly in Google Cloud Console     |
 | D1 database error                    | Run migrations: `npm run migrate` (in apps/server)            |
 | CORS error                           | Update `ALLOWED_ORIGINS` in `.dev.vars`                        |

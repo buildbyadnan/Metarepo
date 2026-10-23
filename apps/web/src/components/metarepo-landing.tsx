@@ -136,13 +136,13 @@ const HIGHLIGHT_CARDS: CardData[] = [
     hot: true,
     ic: "🌐",
     title: "MetaRepo Web",
-    body: "The product front door — landing, waitlist, and dashboard, auth-aware on every render.",
+    body: "The product front door — landing, dashboard, and your documents, auth-aware on every render.",
     path: "apps/web",
   },
   {
     ic: "⚙",
     title: "API Server",
-    body: "Hono on Cloudflare Workers: Google OAuth, sessions, and the waitlist gate on D1.",
+    body: "Hono on Cloudflare Workers: Google OAuth, sessions, and the documents API on D1 + R2.",
     path: "apps/server",
   },
   {
@@ -174,7 +174,7 @@ const HIGHLIGHT_CARDS: CardData[] = [
 const STACK_CARDS: CardData[] = [
   { title: "Frameworks", body: "Next.js 16, React 19" },
   { title: "Logic & types", body: "TypeScript, Nx, pnpm" },
-  { title: "Database & ORM", body: "Cloudflare D1, Drizzle" },
+  { title: "Database & storage", body: "Cloudflare D1, Drizzle, R2" },
   { hot: true, title: "Infrastructure", body: "Cloudflare Workers via OpenNext" },
 ];
 
@@ -203,12 +203,11 @@ function GoogleGIcon() {
 
 /**
  * The one CTA used in the hero and the start panel:
- *   not signed in  -> Sign in with Google (joins the waitlist)
- *   waitlisted     -> View waitlist status
- *   approved       -> Open dashboard
+ *   not signed in  -> Sign in with Google
+ *   signed in      -> Open your documents
  */
 function CtaButton() {
-  const { user, loading, waitlisted, login } = useAuth();
+  const { user, loading, login } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -219,18 +218,10 @@ function CtaButton() {
     );
   }
 
-  if (user && waitlisted) {
-    return (
-      <button className="cta" type="button" onClick={() => router.push("/waitlist")}>
-        View waitlist status →
-      </button>
-    );
-  }
-
   if (user) {
     return (
-      <button className="cta" type="button" onClick={() => router.push("/dashboard")}>
-        Open dashboard →
+      <button className="cta" type="button" onClick={() => router.push("/documents")}>
+        Open your documents →
       </button>
     );
   }
@@ -466,8 +457,8 @@ export function MetarepoLanding() {
           <p>
             Nx keeps every app and package typed and fast. The web app deploys through
             OpenNext straight onto Cloudflare Workers — one push to main and it&apos;s
-            live. Signing in with Google drops you on the waitlist; approved accounts go
-            straight to the dashboard.
+            live. Signing in with Google takes you straight to your personal documents
+            cloud — PDFs and DOCX, private to your account.
           </p>
           <CtaButton />
           <p className="quote">“Building the future, one commit at a time.” Adnan</p>

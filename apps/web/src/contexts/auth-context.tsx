@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { SERVER_URL } from "@/config/server";
 import { API_ENDPOINTS } from "@repo/api-endpoints";
 
@@ -18,23 +18,26 @@ type User = {
   email: string;
   name: string;
   picture: string | null;
+  notifyUpdates: boolean;
   createdAt?: string;
 };
 
 type AuthSnapshot = {
   user: User;
-  waitlisted: boolean;
-  waitlistStatus: string | null;
 };
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   error: string | null;
-  waitlisted: boolean;
-  waitlistStatus: string | null;
   login: () => void;
   logout: () => Promise<void>;
+  /**
+   * Persists the "latest updates or releases" preference. Optimistic: the
+   * UI flips immediately and rolls back if the server rejects the change.
+   * Resolves false when the save failed.
+   */
+  setNotifyUpdates: (value: boolean) => Promise<boolean>;
   /** Re-fetches /auth/me and returns the fresh snapshot (null when signed out/unreachable). */
   refreshUser: () => Promise<AuthSnapshot | null>;
 };
@@ -45,37 +48,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [waitlisted, setWaitlisted] = useState(false);
-  const [waitlistStatus, setWaitlistStatus] = useState<string | null>(null);
 
   const fetchUser = useCallback(async (): Promise<AuthSnapshot | null> => {
     try {
-      const data = await apiFetch<{
-        user: User;
-        waitlisted?: boolean;
-        waitlistStatus?: string | null;
-      }>(API_ENDPOINTS.auth.me);
-      const snapshot: AuthSnapshot = {
-        user: data.user,
-        waitlisted: data.waitlisted ?? false,
-        waitlistStatus: data.waitlistStatus ?? null,
-      };
+      const data = await apiFetch<{ user: User }>(API_ENDPOINTS.auth.me);
+      const snapshot: AuthSnapshot = { user: data.user };
       setUser(snapshot.user);
-      setWaitlisted(snapshot.waitlisted);
-      setWaitlistStatus(snapshot.waitlistStatus);
       setError(null);
       return snapshot;
     } catch (err) {
       setUser(null);
-      setWaitlisted(false);
-      setWaitlistStatus(null);
       // A 401 means "not logged in" — that is not an error state, just unauthenticated.
       // Only surface an error for unexpected failures (5xx, network, etc.)
-      const message = err instanceof Error ? err.message : "";
-      if (message.includes("401")) {
+      if (err instanceof ApiError && err.status === 401) {
         setError(null);
       } else {
-        setError(message || "Could not reach auth server");
+        setError((err instanceof Error && err.message) || "Could not reach auth server");
       }
       return null;
     } finally {
@@ -98,23 +86,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Silent fail — user will be logged out locally regardless
     } finally {
       setUser(null);
-      setWaitlisted(false);
-      setWaitlistStatus(null);
     }
   }, []);
+
+  const setNotifyUpdates = useCallback(
+    async (value: boolean): Promise<boolean> => {
+      const previous = user;
+      if (previous) {
+        setUser({ ...previous, notifyUpdates: value });
+      }
+
+      try {
+        await apiFetch(API_ENDPOINTS.auth.me, {
+          method: "PATCH",
+          body: JSON.stringify({ notifyUpdates: value }),
+        });
+        return true;
+      } catch {
+        if (previous) setUser(previous);
+        return false;
+      }
+    },
+    [user],
+  );
 
   const value = useMemo(
     () => ({
       user,
       loading,
       error,
-      waitlisted,
-      waitlistStatus,
       login,
       logout,
+      setNotifyUpdates,
       refreshUser: fetchUser,
     }),
-    [user, loading, error, waitlisted, waitlistStatus, login, logout, fetchUser],
+    [user, loading, error, login, logout, setNotifyUpdates, fetchUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

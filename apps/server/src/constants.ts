@@ -3,3 +3,43 @@
  * generateState() encodes 32 random bytes -> 43 base64url characters (no padding).
  */
 export const SESSION_TOKEN_LENGTH = 43;
+
+/** Hard per-file upload cap: 10 MB. */
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/** Hard per-user storage quota: 30 MB (their personal cloud). */
+export const USER_STORAGE_QUOTA_BYTES = 30 * 1024 * 1024;
+
+/** Hard system-wide storage ceiling: 1 GB (fits Cloudflare free tier). */
+export const SYSTEM_STORAGE_QUOTA_BYTES = 1024 * 1024 * 1024;
+
+/** Maximum number of documents a single user may store. */
+export const MAX_FILES_PER_USER = 50;
+
+/** Title: 1–120 chars after trim. */
+export const DOCUMENT_TITLE_MAX = 120;
+
+/** Description: optional, ≤ 1000 chars after trim. */
+export const DOCUMENT_DESCRIPTION_MAX = 1000;
+
+/** Allowed document categories (validated server-side). */
+export const DOCUMENT_CATEGORIES = [
+  "report",
+  "invoice",
+  "id",
+  "contract",
+  "notes",
+  "other",
+] as const;
+
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number];
+
+/** Allowed file kinds, decided by content sniffing — never by filename. */
+export const DOCUMENT_KINDS = ["pdf", "docx"] as const;
+
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
+export const DOCUMENT_MIME: Record<DocumentKind, string> = {
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
