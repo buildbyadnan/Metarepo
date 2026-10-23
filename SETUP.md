@@ -121,7 +121,7 @@ Uploaded documents live in a private Cloudflare R2 bucket:
 
 ```bash
 cd apps/server
-npx wrangler r2 bucket create metarepo-docs-adnanbuilds-online
+npx wrangler r2 bucket create metarepo-cloud-storage
 ```
 
 The `DOCS_BUCKET` binding in `apps/server/wrangler.jsonc` already points at this bucket — files are only served through the authenticated API, never publicly.

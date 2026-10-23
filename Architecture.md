@@ -448,7 +448,7 @@ The server's `wrangler.jsonc` defines the D1 database and R2 bucket bindings:
   "r2_buckets": [
     {
       "binding": "DOCS_BUCKET",
-      "bucket_name": "metarepo-docs-adnanbuilds-online",
+      "bucket_name": "metarepo-cloud-storage",
     },
   ],
 }
