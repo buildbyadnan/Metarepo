@@ -36,7 +36,23 @@ metarepo/
 │   │   │   │   │   ├── page.tsx              # Protected dashboard
 │   │   │   │   │   ├── loading.tsx           # Dashboard loading state
 │   │   │   │   │   └── error.tsx             # Dashboard error boundary
+│   │   │   │   └── documents/
+│   │   │   │       ├── layout.tsx            # Documents layout (noindex)
+│   │   │   │       └── page.tsx              # Documents page (tabs, filters, dialogs)
 │   │   │   ├── components/
+│   │   │   │   ├── landing-page.tsx          # Hero + features + pricing
+│   │   │   │   ├── signup-modal.tsx          # Auth modal
+│   │   │   │   ├── modal.tsx                 # Reusable dialog component
+│   │   │   │   ├── google-button.tsx         # Google sign-in button
+│   │   │   │   ├── app-nav.tsx               # App top navigation
+│   │   │   │   └── documents/
+│   │   │   │       ├── shared.tsx            # "Shared with me" list
+│   │   │   │       ├── document-view-modal.tsx # PDF iframe / DOCX preview
+│   │   │   │       ├── docx-preview.tsx      # Client-side DOCX render (docx-preview)
+│   │   │   │       ├── share-dialog.tsx      # Email share dialog
+│   │   │   │       ├── category-picker.tsx   # Category select
+│   │   │   │       └── manage-categories-dialog.tsx # Create/rename/delete categories
+│   │   │   ├── config/
 │   │   │   │   ├── landing-page.tsx          # Hero + features + pricing
 │   │   │   │   ├── signup-modal.tsx          # Auth modal
 │   │   │   │   ├── modal.tsx                 # Reusable dialog component
@@ -59,7 +75,8 @@ metarepo/
 │       │   ├── env.ts                        # Environment validation
 │       │   ├── routes/
 │       │   │   ├── auth.ts                   # Auth endpoints
-│       │   │   ├── documents.ts              # Document endpoints
+│       │   │   ├── documents.ts              # Document + share endpoints
+│       │   │   ├── categories.ts             # Custom category CRUD
 │       │   │   └── health.ts                 # Health check
 │       │   ├── db/
 │       │   │   ├── index.ts                  # D1 + Drizzle init
@@ -68,11 +85,17 @@ metarepo/
 │       │   │       ├── users.ts              # User profiles
 │       │   │       ├── accounts.ts           # OAuth accounts
 │       │   │       ├── sessions.ts           # Session tokens
-│       │   │       └── documents.ts          # Document metadata
+│       │   │       ├── documents.ts          # Document metadata
+│       │   │       ├── document_shares.ts    # Email-keyed shares
+│       │   │       └── categories.ts         # User-created categories
 │       │   └── lib/
 │       │       ├── crypto.ts                 # HMAC-SHA256 hashing
 │       │       ├── logger.ts                 # Structured JSON logging
-│       │       └── origins.ts               # CORS origin parsing
+│       │       ├── origins.ts                # CORS origin parsing
+│       │       ├── validate.ts               # Shared email validation
+│       │       ├── shares.ts                 # Share permission/email helpers
+│       │       ├── access.ts                 # resolveDocumentAccess (owner/write/read)
+│       │       └── documents.ts              # Title/desc/category normalization, sniffer
 │       ├── drizzle/                          # Generated migrations
 │       ├── .dev.vars                         # Local secrets (gitignored)
 │       └── wrangler.jsonc                    # D1 binding config
@@ -189,9 +212,17 @@ The auth system implements **Google OAuth 2.0 with PKCE** — the industry stand
 | `POST` | `/auth/refresh`         | Yes  | Refreshes expired Google tokens using stored refresh token  |
 | `GET`  | `/documents`            | Yes  | Lists the signed-in user's documents + storage usage        |
 | `POST` | `/documents`            | Yes  | Upload (multipart file + title/description/category); 10 MB/file, 30 MB/user, 50 files |
+| `GET`  | `/documents/shared`     | Yes  | Lists documents other users shared with the caller (permission + owner badge) |
 | `GET`  | `/documents/:id/content` | Yes | Streams the file from private R2 (inline; ?download=1 → attachment) |
-| `PATCH` | `/documents/:id`       | Yes  | Updates title / description / category                      |
-| `DELETE` | `/documents/:id`      | Yes  | Deletes metadata + R2 object (204 No Content)               |
+| `PATCH` | `/documents/:id`       | Yes  | Updates title / description (owner or write share); `category` is owner-only (403 for write share) |
+| `DELETE` | `/documents/:id`      | Yes  | Deletes metadata + R2 object, owner-only (204 No Content)   |
+| `POST` | `/documents/:id/shares` | Yes  | Shares with an email — `read` or `write`; owner-only; activates on recipient's first login |
+| `GET`  | `/documents/:id/shares` | Yes  | Lists a document's shares (owner-only) with resolved recipient name |
+| `DELETE` | `/documents/:id/shares/:shareId` | Yes | Revokes one share (owner-only) (204 No Content)   |
+| `GET`  | `/categories`           | Yes  | Builtin categories + the caller's custom categories         |
+| `POST` | `/categories`           | Yes  | Creates a custom category (1–40 chars, max 50/user)         |
+| `PATCH` | `/categories/:id`      | Yes  | Renames a category and cascades onto the owner's documents   |
+| `DELETE` | `/categories/:id`     | Yes  | Removes the category; documents keep their label (204)      |
 
 ### Request/Response Examples
 
@@ -287,13 +318,26 @@ curl -X POST https://metarepo-api.adnanbuilds-online/documents \
 │ user_id     TEXT FK ─│──▶ users.id
 │ title       TEXT     │
 │ description TEXT     │
-│ category    TEXT     │
-│ kind        TEXT     │
+│ category    TEXT     │  ← label (builtin key or owner's custom name),
+│ kind        TEXT     │    no FK — see `categories`
 │ original_name TEXT   │
 │ r2_key      TEXT UQ  │
 │ size        INTEGER  │
 │ created_at  TEXT     │
 └─────────────────────┘
+
+┌──────────────────────────┐        ┌──────────────────────────┐
+│      document_shares      │        │        categories         │
+├──────────────────────────┤        ├──────────────────────────┤
+│ id              TEXT PK   │        │ id             TEXT PK    │
+│ document_id     TEXT FK ──│──▶ documents.id
+│ recipient_email TEXT      │        │ user_id        TEXT FK ───│──▶ users.id
+│ permission      TEXT      │        │ name           TEXT       │
+│ created_at      TEXT      │        │ created_at     TEXT       │
+└──────────────────────────┘        └──────────────────────────┘
+  UNIQUE(document_id, recipient_email)    UNIQUE(user_id, name)
+  INDEX(recipient_email)
+  CHECK(permission IN ('read','write'))
 ```
 
 ### Table Details
@@ -354,6 +398,33 @@ curl -X POST https://metarepo-api.adnanbuilds-online/documents \
 
 File bytes live in R2 under `docs/{userId}/{uuid}.{ext}` — the key is never exposed publicly; content is only served through the authenticated `GET /documents/:id/content` endpoint. Every query is scoped by `user_id` (30 MB / 50 files per user).
 
+#### `document_shares`
+
+| Column            | Type | Constraints                                          | Description                                     |
+| ----------------- | ---- | ---------------------------------------------------- | ----------------------------------------------- |
+| `id`              | TEXT | PRIMARY KEY                                          | Share ID (UUID)                                 |
+| `document_id`     | TEXT | NOT NULL, FK → `documents.id` ON DELETE CASCADE      | Shared document (deleting the doc removes shares) |
+| `recipient_email` | TEXT | NOT NULL                                              | Lowercased exact recipient email (resolved at access time) |
+| `permission`      | TEXT | NOT NULL, CHECK `IN ('read','write')`                 | `read` = view+download; `write` = also edit title/description |
+| `created_at`      | TEXT | NOT NULL, DEFAULT `CURRENT_TIMESTAMP`                 | Share creation time                             |
+
+**Indexes:** `UNIQUE(document_id, recipient_email)`, `INDEX(recipient_email)`
+
+Shares are keyed by email rather than a recipient user ID on purpose: a share created before the recipient ever signed up activates when that address first logs in. Access resolves through `resolveDocumentAccess()` (owner > write > read > null); delete, share management, and `category` stay owner-only, and a revoked or never-existent share returns the same 404 as a document that doesn't exist.
+
+#### `categories`
+
+| Column       | Type | Constraints                                          | Description                            |
+| ------------ | ---- | ---------------------------------------------------- | -------------------------------------- |
+| `id`         | TEXT | PRIMARY KEY                                          | Category ID (UUID)                     |
+| `user_id`    | TEXT | NOT NULL, FK → `users.id` ON DELETE CASCADE          | Creator (owner-only)                   |
+| `name`       | TEXT | NOT NULL                                              | Custom name (1–40 chars, max 50/user)  |
+| `created_at` | TEXT | NOT NULL, DEFAULT `CURRENT_TIMESTAMP`                 | Creation time                          |
+
+**Indexes:** `UNIQUE(user_id, name)`
+
+This table powers the creator's picker only — `documents.category` stays a plain TEXT label (builtin key or custom name) with deliberately no foreign key, so deleting a category never rewrites documents and they keep the label they were given. Renaming cascades onto the owner's documents that carry the old name; the routes add a case-insensitive uniqueness check on top of the index.
+
 ---
 
 ## Security Features
@@ -399,7 +470,7 @@ This codebase has been **audited for production use**. Every security decision i
 
 | Feature                | Implementation                                                       |
 | ---------------------- | -------------------------------------------------------------------- |
-| **Rate Limiting**      | KV-backed: configurable limits on OAuth and session endpoints            |
+| **Rate Limiting**      | KV-backed (opt-in): OAuth 10/min, session 30/min, uploads 10/min, share/category writes 30/min per IP |
 | **CORS**               | Configurable allowed origins, credentials enabled                    |
 | **Body Size Limit**    | 1MB maximum request body via Hono bodyLimit middleware               |
 | **Input Validation**   | Email format, name sanitization, picture URL validation              |

@@ -104,16 +104,21 @@ npm run migrate
 When prompted:
 1. Select migration **`0`** (the initial schema)
 2. Choose **`local`** for local development
+3. Repeat for migration **`1`** (document shares + custom categories)
 
 Or run directly without the interactive prompt:
 
 ```bash
-# Local development
-npx wrangler d1 execute metarepo-db-adnanbuilds-online --local --file=./drizzle/0000_gigantic_valeria_richards.sql
+# Local development — apply in order
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --local --file=./drizzle/0000_busy_dracula.sql
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --local --file=./drizzle/0001_silky_longshot.sql
 
-# Production (remote)
-npx wrangler d1 execute metarepo-db-adnanbuilds-online --remote --file=./drizzle/0000_gigantic_valeria_richards.sql
+# Production (remote) — apply in order
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --remote --file=./drizzle/0000_busy_dracula.sql
+npx wrangler d1 execute metarepo-db-adnanbuilds-online --remote --file=./drizzle/0001_silky_longshot.sql
 ```
+
+Migration files are ordered by the numeric prefix — always apply them in sequence. The `0000` base schema was squashed (renamed from the earlier `0000_gigantic_valeria_richards`); its contents are unchanged, only the filename differs.
 
 ### Create the R2 Bucket (document storage)
 

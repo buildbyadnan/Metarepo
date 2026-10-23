@@ -133,7 +133,117 @@ export type DocumentsListResponse = {
   usage: DocumentsUsage;
 };
 
+// ---------------------------------------------------------------------------
+// Sharing
+// ---------------------------------------------------------------------------
+
+export type SharePermission = "read" | "write";
+
+export type ShareDto = {
+  id: string;
+  documentId: string;
+  email: string;
+  permission: SharePermission;
+  createdAt: string;
+  /** Display info — null while the recipient has never signed in. */
+  recipientName?: string | null;
+  recipientPicture?: string | null;
+};
+
+export type SharesListResponse = {
+  shares: ShareDto[];
+};
+
+/** A document someone shared with the current user. */
+export type SharedDocumentDto = DocumentDto & {
+  permission: SharePermission;
+  sharedAt: string;
+  sharedBy: { name: string; email: string; picture: string | null };
+};
+
+export type SharedListResponse = {
+  documents: SharedDocumentDto[];
+};
+
+export async function fetchShares(id: string): Promise<SharesListResponse> {
+  return apiFetch<SharesListResponse>(API_ENDPOINTS.documents.shares(id));
+}
+
+export async function createShare(
+  id: string,
+  email: string,
+  permission: SharePermission,
+): Promise<{ share: ShareDto }> {
+  return apiFetch<{ share: ShareDto }>(API_ENDPOINTS.documents.shares(id), {
+    method: "POST",
+    body: JSON.stringify({ email, permission }),
+  });
+}
+
+export async function revokeShare(id: string, shareId: string): Promise<void> {
+  await apiFetch<void>(API_ENDPOINTS.documents.share(id, shareId), { method: "DELETE" });
+}
+
+export async function fetchSharedDocuments(): Promise<SharedListResponse> {
+  return apiFetch<SharedListResponse>(API_ENDPOINTS.documents.shared);
+}
+
+// ---------------------------------------------------------------------------
+// Categories (user-defined)
+// ---------------------------------------------------------------------------
+
+export type CategoryDto = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
+export type CategoriesResponse = {
+  builtin: string[];
+  categories: CategoryDto[];
+};
+
+export async function fetchCategories(): Promise<CategoriesResponse> {
+  return apiFetch<CategoriesResponse>(API_ENDPOINTS.categories.root);
+}
+
+export async function createCategory(name: string): Promise<{ category: CategoryDto }> {
+  return apiFetch<{ category: CategoryDto }>(API_ENDPOINTS.categories.root, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function renameCategory(id: string, name: string): Promise<{ category: CategoryDto }> {
+  return apiFetch<{ category: CategoryDto }>(API_ENDPOINTS.categories.detail(id), {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  await apiFetch<void>(API_ENDPOINTS.categories.detail(id), { method: "DELETE" });
+}
+
 /** Builds the authenticated content URL for a document (credentialed top-level navigation). */
 export function documentContentUrl(id: string, download = false): string {
   return `${SERVER_URL}${API_ENDPOINTS.documents.content(id)}${download ? "?download=1" : ""}`;
+}
+
+/**
+ * Fetches a document's raw bytes with the session cookie — used by the
+ * client-side DOCX preview (docx-preview renders an ArrayBuffer in the DOM,
+ * so no public/presigned URL is ever needed).
+ */
+export async function fetchDocumentBytes(id: string): Promise<ArrayBuffer> {
+  const res = await fetch(documentContentUrl(id), { credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(
+      body?.error || `API error: ${res.status}`,
+      res.status,
+      typeof body?.message === "string" ? body.message : undefined,
+    );
+  }
+  return res.arrayBuffer();
 }

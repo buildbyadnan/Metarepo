@@ -5,6 +5,7 @@ import { bodyLimit } from "hono/body-limit";
 import { initDbConnect } from "./db";
 import { authRoutes } from "./routes/auth";
 import { documentRoutes } from "./routes/documents";
+import { categoryRoutes } from "./routes/categories";
 import { healthRoutes } from "./routes/health";
 import { logError } from "./lib/logger";
 import { parseAllowedOrigins } from "./lib/origins";
@@ -139,9 +140,36 @@ app.use("/documents", async (c, next) => {
   await next();
 });
 
+// Share creation: /documents/:id/shares (but not the upload above, whose
+// path is exactly /documents). 30 shares per minute per client.
+app.use("/documents/*", async (c, next) => {
+  if (c.req.method !== "POST" || !c.req.path.endsWith("/shares")) {
+    return next();
+  }
+  const ip = getClientIp(c);
+  if (!(await checkRateLimitKV(c.env.RATE_LIMIT_KV, `share:${ip}`, 30, 60))) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+  await next();
+});
+
+// Category mutations (create/rename/delete cascade over documents). 30 per minute per client.
+app.use("/categories", async (c, next) => {
+  if (c.req.method === "GET") {
+    await next();
+    return;
+  }
+  const ip = getClientIp(c);
+  if (!(await checkRateLimitKV(c.env.RATE_LIMIT_KV, `category:${ip}`, 30, 60))) {
+    return c.json({ error: "Too many requests" }, 429);
+  }
+  await next();
+});
+
 app.route("/", healthRoutes);
 app.route("/auth", authRoutes);
 app.route("/documents", documentRoutes);
+app.route("/categories", categoryRoutes);
 
 app.onError((err, c) => {
   logError("Unhandled error", err);

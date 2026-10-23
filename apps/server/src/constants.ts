@@ -43,3 +43,25 @@ export const DOCUMENT_MIME: Record<DocumentKind, string> = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
+
+// ---------------------------------------------------------------------------
+// Sharing
+// ---------------------------------------------------------------------------
+
+/** Share permissions: read = view+download, write = also edit title/description. */
+export const SHARE_PERMISSIONS = ["read", "write"] as const;
+
+export type SharePermission = (typeof SHARE_PERMISSIONS)[number];
+
+/** Maximum number of shares a single document may have. */
+export const MAX_SHARES_PER_DOCUMENT = 20;
+
+// ---------------------------------------------------------------------------
+// Custom categories
+// ---------------------------------------------------------------------------
+
+/** Custom category name: 1–40 chars after trim (validated server-side). */
+export const CATEGORY_NAME_MAX = 40;
+
+/** Maximum number of custom categories a single user may create. */
+export const MAX_CATEGORIES_PER_USER = 50;

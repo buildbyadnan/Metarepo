@@ -13,6 +13,7 @@ import { users, accounts, sessions } from "../db/schema";
 import { eq, and, lt } from "drizzle-orm";
 import { hashSession } from "../lib/crypto";
 import { getSessionUserId } from "../lib/session";
+import { isValidEmail } from "../lib/validate";
 import { logError } from "../lib/logger";
 import { isForeignOrigin, parseAllowedOrigins } from "../lib/origins";
 import { SESSION_TOKEN_LENGTH } from "../constants";
@@ -20,10 +21,6 @@ import type { Bindings, Variables } from "../types";
 
 // Session lifetime in seconds (default: 7 days). Customize as needed.
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 320;
-}
 
 function sanitizeName(name: string): string {
   return (

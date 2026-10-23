@@ -1,4 +1,5 @@
 import {
+  CATEGORY_NAME_MAX,
   DOCUMENT_CATEGORIES,
   DOCUMENT_DESCRIPTION_MAX,
   DOCUMENT_TITLE_MAX,
@@ -151,14 +152,49 @@ export function normalizeDescription(
   return { ok: true, value: trimmed };
 }
 
-/** Validates the category; missing → "other", unknown → invalid. */
-export function normalizeCategory(raw: unknown): DocumentCategory | null {
+/**
+ * Validates the category against the builtins and (optionally) the user's
+ * custom category names. Missing → "other"; unknown → null.
+ *
+ * Builtins always match lowercased; a custom name matches
+ * case-insensitively but returns the canonical stored spelling, so
+ * documents keep the creator's original casing.
+ */
+export function normalizeCategory(
+  raw: unknown,
+  customNames: readonly string[] = [],
+): string | null {
   if (raw === undefined || raw === null || raw === "") return "other";
   if (typeof raw !== "string") return null;
   const lowered = raw.trim().toLowerCase();
-  return (DOCUMENT_CATEGORIES as readonly string[]).includes(lowered)
-    ? (lowered as DocumentCategory)
-    : null;
+  if ((DOCUMENT_CATEGORIES as readonly string[]).includes(lowered)) {
+    return lowered as DocumentCategory;
+  }
+  const match = customNames.find((name) => name.trim().toLowerCase() === lowered);
+  return match ?? null;
+}
+
+/**
+ * Validates a user-created category name for POST/PATCH /categories:
+ * control chars stripped, trimmed, 1–CATEGORY_NAME_MAX chars, and it may
+ * not shadow a builtin key (those stay reserved for every account).
+ */
+export function normalizeCategoryName(
+  raw: unknown,
+): { ok: true; value: string } | { ok: false; reason: "invalid_name" | "builtin" } {
+  if (typeof raw !== "string") return { ok: false, reason: "invalid_name" };
+  const cleaned = raw
+    // eslint-disable-next-line no-control-regex -- intentional: strip control chars
+    .replace(/[\x00-\x1f\x7f]/g, "")
+    .trim();
+  // Reject (don't silently truncate): the user should see why nothing stuck.
+  if (cleaned.length === 0 || cleaned.length > CATEGORY_NAME_MAX) {
+    return { ok: false, reason: "invalid_name" };
+  }
+  if ((DOCUMENT_CATEGORIES as readonly string[]).includes(cleaned.toLowerCase())) {
+    return { ok: false, reason: "builtin" };
+  }
+  return { ok: true, value: cleaned };
 }
 
 /** Human-friendly byte formatting shared by the API usage payloads. */

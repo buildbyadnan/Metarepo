@@ -32,8 +32,29 @@
   border-radius: inherit;
   padding: 1px;
   background: linear-gradient(135deg, #6366f1, #a855f7, #6366f1);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
+
+/* In-browser DOCX preview (docx-preview): a light "paper" surface inside
+   the dark viewer. The library injects its own <style> into the root. */
+.docx-preview-scroll {
+  background: radial-gradient(circle at 50% 0, rgb(15 23 42 / 0.6), transparent 60%), #0f172a;
+}
+
+.docx-preview-root .docx-wrapper {
+  background: #1e293b !important;
+  padding: 1.5rem 0 !important;
+  box-shadow: none !important;
+}
+
+.docx-preview-root .docx-wrapper > section.docx {
+  box-shadow:
+    0 10px 40px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(148 163 184 / 0.12) !important;
+  margin-bottom: 1.25rem !important;
 }

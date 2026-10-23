@@ -5,6 +5,7 @@ import {
   normalizeTitle,
   normalizeDescription,
   normalizeCategory,
+  normalizeCategoryName,
   formatBytes,
 } from "./documents";
 
@@ -141,6 +142,49 @@ describe("normalizeCategory", () => {
   it("rejects unknown categories", () => {
     expect(normalizeCategory("malware")).toBeNull();
     expect(normalizeCategory(7)).toBeNull();
+  });
+
+  it("accepts the user's custom categories, preserving stored spelling", () => {
+    expect(normalizeCategory("taxes 2025", ["Taxes 2025"])).toBe("Taxes 2025");
+    expect(normalizeCategory(" TAXES 2025 ", ["Taxes 2025"])).toBe("Taxes 2025");
+    expect(normalizeCategory("Receipts", ["Receipts"])).toBe("Receipts");
+  });
+
+  it("does not accept another list's categories by mistake", () => {
+    expect(normalizeCategory("taxes", ["Receipts"])).toBeNull();
+    // Custom names never override builtins.
+    expect(normalizeCategory("report", ["report-notes"])).toBe("report");
+  });
+
+  it("rejects non-strings even when customs exist", () => {
+    expect(normalizeCategory(7, ["Taxes"])).toBeNull();
+  });
+});
+
+describe("normalizeCategoryName", () => {
+  it("trims and accepts a normal name", () => {
+    expect(normalizeCategoryName("  Taxes  ")).toEqual({ ok: true, value: "Taxes" });
+    expect(normalizeCategoryName("Q3 Reports")).toEqual({ ok: true, value: "Q3 Reports" });
+  });
+
+  it("rejects builtin names case-insensitively", () => {
+    expect(normalizeCategoryName("Invoice")).toEqual({ ok: false, reason: "builtin" });
+    expect(normalizeCategoryName(" other ")).toEqual({ ok: false, reason: "builtin" });
+  });
+
+  it("rejects empty, non-string, and overlong names", () => {
+    expect(normalizeCategoryName("")).toEqual({ ok: false, reason: "invalid_name" });
+    expect(normalizeCategoryName("   ")).toEqual({ ok: false, reason: "invalid_name" });
+    expect(normalizeCategoryName(42)).toEqual({ ok: false, reason: "invalid_name" });
+    expect(normalizeCategoryName(null)).toEqual({ ok: false, reason: "invalid_name" });
+    expect(normalizeCategoryName("x".repeat(41))).toEqual({
+      ok: false,
+      reason: "invalid_name",
+    });
+  });
+
+  it("strips control characters", () => {
+    expect(normalizeCategoryName("Taxes\x00\x1f!")).toEqual({ ok: true, value: "Taxes!" });
   });
 });
 

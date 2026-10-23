@@ -1,7 +1,16 @@
 import { Hono, type Context } from "hono";
-import { and, desc, eq, sql, count } from "drizzle-orm";
-import { documents, type DocumentRow } from "../db/schema";
+import { and, desc, eq, exists, sql, count } from "drizzle-orm";
+import {
+  categories,
+  documentShares,
+  documents,
+  users,
+  type DocumentRow,
+  type DocumentShareRow,
+} from "../db/schema";
 import { getSessionUserId } from "../lib/session";
+import { getSessionEmail, resolveDocumentAccess } from "../lib/access";
+import { normalizePermission, normalizeRecipientEmail } from "../lib/shares";
 import {
   formatBytes,
   normalizeCategory,
@@ -15,6 +24,7 @@ import { isForeignOrigin, parseAllowedOrigins } from "../lib/origins";
 import {
   DOCUMENT_MIME,
   MAX_FILES_PER_USER,
+  MAX_SHARES_PER_DOCUMENT,
   MAX_UPLOAD_BYTES,
   SYSTEM_STORAGE_QUOTA_BYTES,
   USER_STORAGE_QUOTA_BYTES,
@@ -29,9 +39,14 @@ type Ctx = { Bindings: Bindings; Variables: Variables };
  * Isolation invariants (do not weaken):
  * 1. Every query is scoped by `user_id` taken from the server-side session.
  * 2. Missing and foreign document ids return the *identical* 404, so ids
- *    cannot be probed across accounts.
+ *    cannot be probed across accounts. Shared-in documents follow the same
+ *    rule: a revoked or never-existent share is indistinguishable from a
+ *    document that does not exist.
  * 3. R2 objects are only reachable through the authenticated content route;
  *    the bucket is private and never exposed via presigned URLs.
+ * 4. Authorization funnels through resolveDocumentAccess() — owner >
+ *    write > read > null. Delete and share management stay owner-only even
+ *    for write recipients, and the category field is owner-only too.
  */
 export const documentRoutes = new Hono<Ctx>();
 
@@ -58,6 +73,16 @@ function publicDoc(row: DocumentRow) {
     kind: row.kind,
     originalName: row.originalName,
     size: row.size,
+    createdAt: row.createdAt,
+  };
+}
+
+function publicShare(row: DocumentShareRow) {
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    email: row.recipientEmail,
+    permission: row.permission,
     createdAt: row.createdAt,
   };
 }
@@ -138,7 +163,19 @@ documentRoutes.post("/", async (c) => {
     );
   }
 
-  const category = normalizeCategory(body.category);
+  // Builtins resolve without a lookup; only a non-builtin value costs one
+  // query against the user's custom categories.
+  let category = normalizeCategory(body.category);
+  if (category === null && typeof body.category === "string" && body.category.trim() !== "") {
+    const custom = await c.var.db
+      .select({ name: categories.name })
+      .from(categories)
+      .where(eq(categories.userId, userId));
+    category = normalizeCategory(
+      body.category,
+      custom.map((row) => row.name),
+    );
+  }
   if (!category) {
     return c.json(
       {
@@ -252,7 +289,48 @@ documentRoutes.get("/", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /documents/:id/content — streams the caller's own file from R2.
+// GET /documents/shared — documents OTHER people shared with the caller.
+// Includes the permission and owner info for the "Shared by" badge.
+// ---------------------------------------------------------------------------
+documentRoutes.get("/shared", async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const email = await getSessionEmail(c.var.db, userId);
+  if (!email) return c.json({ error: "Unauthorized" }, 401);
+
+  const rows = await c.var.db
+    .select({
+      doc: documents,
+      permission: documentShares.permission,
+      sharedAt: documentShares.createdAt,
+      ownerName: users.name,
+      ownerEmail: users.email,
+      ownerPicture: users.picture,
+    })
+    .from(documentShares)
+    .innerJoin(documents, eq(documents.id, documentShares.documentId))
+    .innerJoin(users, eq(users.id, documents.userId))
+    .where(eq(documentShares.recipientEmail, email.trim().toLowerCase()))
+    .orderBy(desc(documents.createdAt), desc(documents.id));
+
+  return c.json({
+    documents: rows.map((row) => ({
+      ...publicDoc(row.doc),
+      permission: row.permission,
+      sharedAt: row.sharedAt,
+      sharedBy: {
+        name: row.ownerName,
+        email: row.ownerEmail,
+        picture: row.ownerPicture,
+      },
+    })),
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /documents/:id/content — streams the caller's file from R2.
+// Owners and read/write recipients all pass through resolveDocumentAccess.
 // PDFs are served inline (browser viewer); DOCX always downloads.
 // `?download=1` forces a download for PDFs too.
 // ---------------------------------------------------------------------------
@@ -262,13 +340,9 @@ documentRoutes.get("/:id/content", async (c) => {
 
   const id = c.req.param("id");
 
-  const row = await c.var.db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
-    .get();
-
-  if (!row) return notFound(c);
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  if (!resolved) return notFound(c);
+  const row = resolved.doc;
 
   const object = await c.env.DOCS_BUCKET.get(row.r2Key);
   if (!object) {
@@ -302,7 +376,9 @@ documentRoutes.get("/:id/content", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// PATCH /documents/:id — edit title / description / category (owner only)
+// PATCH /documents/:id — edit title / description (owner or write share);
+// category stays owner-only (write recipients get an explicit 403 there).
+// Read recipients get the identical 404: mutations must not leak existence.
 // ---------------------------------------------------------------------------
 documentRoutes.patch("/:id", async (c) => {
   if (fromForeignOrigin(c)) return c.json({ error: "Forbidden" }, 403);
@@ -311,6 +387,13 @@ documentRoutes.patch("/:id", async (c) => {
   if (!userId) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
+
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  // No access, or read-only access: indistinguishable from a missing id.
+  if (!resolved || resolved.access === "read") return notFound(c);
+  const existing = resolved.doc;
+  const isOwner = resolved.access === "owner";
+
   const body = (await c.req.json().catch(() => null)) as {
     title?: unknown;
     description?: unknown;
@@ -329,13 +412,9 @@ documentRoutes.patch("/:id", async (c) => {
     );
   }
 
-  const existing = await c.var.db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
-    .get();
-
-  if (!existing) return notFound(c);
+  if ("category" in body && !isOwner) {
+    return c.json({ error: "forbidden", message: "Only the owner can change the category." }, 403);
+  }
 
   const set: { title?: string; description?: string | null; category?: string } = {};
 
@@ -362,26 +441,50 @@ documentRoutes.patch("/:id", async (c) => {
   }
 
   if ("category" in body) {
-    const category = normalizeCategory(body.category);
+    // Owner-only, validated against builtins + this owner's custom names.
+    let category = normalizeCategory(body.category);
+    if (category === null && typeof body.category === "string" && body.category.trim() !== "") {
+      const custom = await c.var.db
+        .select({ name: categories.name })
+        .from(categories)
+        .where(eq(categories.userId, existing.userId));
+      category = normalizeCategory(
+        body.category,
+        custom.map((row) => row.name),
+      );
+    }
     if (!category) {
       return c.json({ error: "invalid_category", message: "Unknown category." }, 400);
     }
     set.category = category;
   }
 
+  // Scope by id + (owner user id OR a live write share) so a revocation
+  // racing this request cannot slip through.
+  const writeScope = isOwner
+    ? eq(documents.userId, userId)
+    : exists(
+        c.var.db
+          .select({ one: sql`1` })
+          .from(documentShares)
+          .where(
+            and(
+              eq(documentShares.documentId, id),
+              eq(documentShares.recipientEmail, resolved.email ?? ""),
+              eq(documentShares.permission, "write"),
+            ),
+          ),
+      );
+
   const result = await c.var.db
     .update(documents)
     .set(set)
-    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
+    .where(and(eq(documents.id, id), writeScope))
     .run();
 
   if (result.meta?.changes === 0) return notFound(c);
 
-  const updated = await c.var.db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
-    .get();
+  const updated = await c.var.db.select().from(documents).where(eq(documents.id, id)).get();
 
   if (!updated) return notFound(c);
 
@@ -389,7 +492,9 @@ documentRoutes.patch("/:id", async (c) => {
 });
 
 // ---------------------------------------------------------------------------
-// DELETE /documents/:id — removes the R2 object and the row (frees quota)
+// DELETE /documents/:id — removes the R2 object and the row (frees quota).
+// Owner-only even for write recipients: a write share cannot destroy data.
+// Everyone else gets the identical 404.
 // ---------------------------------------------------------------------------
 documentRoutes.delete("/:id", async (c) => {
   if (fromForeignOrigin(c)) return c.json({ error: "Forbidden" }, 403);
@@ -399,20 +504,170 @@ documentRoutes.delete("/:id", async (c) => {
 
   const id = c.req.param("id");
 
-  const row = await c.var.db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.id, id), eq(documents.userId, userId)))
-    .get();
-
-  if (!row) return notFound(c);
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  if (!resolved || resolved.access !== "owner") return notFound(c);
+  const row = resolved.doc;
 
   await c.env.DOCS_BUCKET.delete(row.r2Key);
 
-  await c.var.db
+  const result = await c.var.db
     .delete(documents)
     .where(and(eq(documents.id, id), eq(documents.userId, userId)))
     .run();
+
+  // Row vanished between resolve and delete (e.g. owner deleted it twice) —
+  // the R2 object is gone either way, keep the response consistent.
+  if (result.meta?.changes === 0) return notFound(c);
+
+  return c.body(null, 204);
+});
+
+// ---------------------------------------------------------------------------
+// POST /documents/:id/shares — share with an email address (owner only).
+// The recipient does not need an account yet: the share activates when
+// that address first signs in. Rate-limited at the app layer (index.ts).
+// ---------------------------------------------------------------------------
+documentRoutes.post("/:id/shares", async (c) => {
+  if (fromForeignOrigin(c)) return c.json({ error: "Forbidden" }, 403);
+
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  if (!resolved || resolved.access !== "owner") return notFound(c);
+
+  const body = (await c.req.json().catch(() => null)) as {
+    email?: unknown;
+    permission?: unknown;
+  } | null;
+
+  if (!body || typeof body !== "object") {
+    return c.json({ error: "invalid_body", message: "Expected a JSON object." }, 400);
+  }
+
+  const email = normalizeRecipientEmail(body.email);
+  if (!email) {
+    return c.json({ error: "invalid_email", message: "Enter a valid email address." }, 400);
+  }
+
+  const permission = normalizePermission(body.permission);
+  if (!permission) {
+    return c.json(
+      { error: "invalid_permission", message: 'Permission must be "read" or "write".' },
+      400,
+    );
+  }
+
+  const ownerEmail = await getSessionEmail(c.var.db, userId);
+  if (ownerEmail && email === ownerEmail.trim().toLowerCase()) {
+    return c.json(
+      { error: "cannot_share_to_self", message: "You cannot share with yourself." },
+      400,
+    );
+  }
+
+  const agg = await c.var.db
+    .select({ shares: count() })
+    .from(documentShares)
+    .where(eq(documentShares.documentId, id))
+    .get();
+  if ((agg?.shares ?? 0) >= MAX_SHARES_PER_DOCUMENT) {
+    return c.json(
+      {
+        error: "share_limit",
+        message: `A document can be shared with at most ${MAX_SHARES_PER_DOCUMENT} people.`,
+      },
+      409,
+    );
+  }
+
+  const shareId = crypto.randomUUID();
+  const inserted = await c.var.db
+    .insert(documentShares)
+    .values({
+      id: shareId,
+      documentId: id,
+      recipientEmail: email,
+      permission,
+    })
+    .onConflictDoNothing()
+    .run();
+
+  // UNIQUE(document_id, recipient_email) raced or pre-existed → duplicate.
+  if (inserted.meta?.changes === 0) {
+    return c.json(
+      { error: "already_shared", message: "This document is already shared with that email." },
+      409,
+    );
+  }
+
+  const row = await c.var.db
+    .select()
+    .from(documentShares)
+    .where(eq(documentShares.id, shareId))
+    .get();
+  if (!row) return c.json({ error: "storage_unavailable", message: "Could not share." }, 500);
+
+  return c.json({ share: publicShare(row) }, 201);
+});
+
+// ---------------------------------------------------------------------------
+// GET /documents/:id/shares — the share list (owner only). Includes the
+// recipient's display name when they already have an account.
+// ---------------------------------------------------------------------------
+documentRoutes.get("/:id/shares", async (c) => {
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  if (!resolved || resolved.access !== "owner") return notFound(c);
+
+  const rows = await c.var.db
+    .select({
+      share: documentShares,
+      recipientName: users.name,
+      recipientPicture: users.picture,
+    })
+    .from(documentShares)
+    .leftJoin(users, eq(users.email, documentShares.recipientEmail))
+    .where(eq(documentShares.documentId, id))
+    .orderBy(desc(documentShares.createdAt), desc(documentShares.id));
+
+  return c.json({
+    shares: rows.map((row) => ({
+      ...publicShare(row.share),
+      recipientName: row.recipientName,
+      recipientPicture: row.recipientPicture,
+    })),
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /documents/:id/shares/:shareId — revoke one share (owner only).
+// Scoped by document id too, so a share id from another document is a 404.
+// ---------------------------------------------------------------------------
+documentRoutes.delete("/:id/shares/:shareId", async (c) => {
+  if (fromForeignOrigin(c)) return c.json({ error: "Forbidden" }, 403);
+
+  const userId = await getSessionUserId(c);
+  if (!userId) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const shareId = c.req.param("shareId");
+
+  const resolved = await resolveDocumentAccess(c.var.db, id, userId);
+  if (!resolved || resolved.access !== "owner") return notFound(c);
+
+  const result = await c.var.db
+    .delete(documentShares)
+    .where(and(eq(documentShares.id, shareId), eq(documentShares.documentId, id)))
+    .run();
+
+  if (result.meta?.changes === 0) return notFound(c);
 
   return c.body(null, 204);
 });

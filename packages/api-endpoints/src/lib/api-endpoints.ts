@@ -13,6 +13,15 @@ export const API_ENDPOINTS = {
     root: "/documents",
     content: (id: string) => `/documents/${id}/content`,
     detail: (id: string) => `/documents/${id}`,
+    shared: "/documents/shared",
+    shares: (id: string) => `/documents/${id}/shares`,
+    share: (id: string, shareId: string) => `/documents/${id}/shares/${shareId}`,
+  },
+
+  // Categories (user-defined document categories)
+  categories: {
+    root: "/categories",
+    detail: (id: string) => `/categories/${id}`,
   },
 
   // Health
