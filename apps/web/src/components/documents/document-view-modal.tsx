@@ -45,8 +45,9 @@ export function DocumentViewModal({ doc, onClose }: Props) {
   }, [onClose]);
 
   // DOCX: fetch the bytes once (session cookie) for client-side rendering.
+  // (PDFs skip this — they render natively via the iframe below.)
   useEffect(() => {
-    if (doc.kind !== "pdf") return;
+    if (doc.kind === "pdf") return;
     let cancelled = false;
     setLoading(true);
     fetchDocumentBytes(doc.id)
