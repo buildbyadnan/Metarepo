@@ -20,20 +20,32 @@ npm_package(
     visibility = ["//visibility:public"],
 )
 
-# Type-check target against tsconfig.lib.json — the real build config (the
-# package's tsconfig.json is only a project-references shell). no_emit keeps
-# Bazel out of dist/ ownership while the nx build target still emits it.
+# The package's tsconfig.json is only a project-references shell over
+# tsconfig.lib.json (the real build config). Both are exposed: consumers
+# walking the project-reference chain (e.g. //apps/web) resolve the shell
+# first, which then needs the lib config and the base it extends.
 ts_config(
-    name = "tsconfig",
+    name = "tsconfig_lib",
     src = "tsconfig.lib.json",
     deps = ["//:tsconfig_base"],
+    visibility = ["//visibility:public"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = [
+        "//:tsconfig_base",
+        ":tsconfig_lib",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 ts_project(
     name = "typecheck",
     srcs = glob(["src/**/*.ts"]),
     no_emit = True,
-    tsconfig = ":tsconfig",
+    tsconfig = ":tsconfig_lib",
     validate = False,
     deps = [
         # tsconfig.lib.json sets "types": ["node"].

@@ -47,6 +47,7 @@ ts_project(
 
 js_test(
     name = "test",
+    size = "small",
     args = ["run", "--reporter=default"],
     chdir = package_name(),
     data = glob(["src/**/*.ts"]) + [

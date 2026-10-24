@@ -28,6 +28,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/.next/**",
       "**/.nx/**",
+      "**/bazel-*",
       "**/.open-next/**",
       "**/.wrangler/**",
       "**/.agents/**",

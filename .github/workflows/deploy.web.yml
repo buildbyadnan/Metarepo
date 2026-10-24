@@ -37,11 +37,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and typecheck
-        run: pnpm exec nx run-many -t build typecheck
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          cache-version: 1
 
-      - name: Run tests
-        run: pnpm exec vitest run
+      - name: Typecheck and test (Bazel)
+        run: bazel test //... --test_output=errors
+
+      # The next build inside `opennextjs-cloudflare build` resolves
+      # @repo/api-endpoints -> dist/index.js; emit it here with tsc.
+      - name: Build @repo/api-endpoints (tsc)
+        run: pnpm exec tsc --build packages/api-endpoints/tsconfig.lib.json
 
       - name: Build and Deploy to Cloudflare Workers
         run: pnpm run deploy

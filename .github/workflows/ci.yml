@@ -30,12 +30,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec nx affected -t build typecheck
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@104e3eea9447cdaa4b00d0fb46191a3985d26ab3 # 0.19.1
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          cache-version: 1
 
-      - run: pnpm exec vitest run
+      - name: Typecheck and test (Bazel)
+        run: bazel test //... --test_output=errors
 
-      - run: pnpm exec nx run-many -t lint
+      - name: Build packages (tsc)
+        run: |
+          pnpm exec tsc --build packages/http/tsconfig.json
+          pnpm exec tsc --build packages/auth/tsconfig.json
+          pnpm exec tsc --build packages/api-endpoints/tsconfig.lib.json
 
-      # Gate on production deps only: dev-only advisories (e.g. nx dev-server
-      # tooling) never ship to users and often have no patch available.
+      - name: Build web (next)
+        run: pnpm --filter @repo/web run build
+
+      - name: Bundle server (wrangler dry-run)
+        run: pnpm --filter @repo/server exec wrangler deploy --dry-run --outdir dist
+
+      - name: Lint
+        run: pnpm run lint
+
+      # Gate on production deps only: dev-only advisories never ship to
+      # users and often have no patch available.
       - run: pnpm audit --prod --audit-level high
