@@ -8,7 +8,7 @@
     One open monorepo for everything I build — a dark, green, mono-styled web app
     where every visitor signs in with Google and gets a personal document cloud
     (PDF &amp; DOCX uploads, private per account). Next.js 16 + Hono on Cloudflare
-    Workers, orchestrated with Nx.
+    Workers, orchestrated with Bazel.
   </p>
   <p>
     <a href="https://metarepo.adnanbuilds.online" style="font-size:1.1rem; font-weight:700; color:#3dff7a;">metarepo.adnanbuilds.online</a>
@@ -30,7 +30,7 @@ Metarepo/
 │   └── http/                   # @repo/http — shared HTTP/crypto utilities (fetch, HMAC, AES-GCM)
 ├── .github/workflows/          # CI + deploy pipelines
 ├── Architecture.md             # SaaS LaunchKit Pro architecture reference
-├── BAZEL.md                    # Bazel build system — how it coexists with nx
+├── BAZEL.md                    # Bazel build system — typecheck, tests and CI
 └── SETUP.md                    # SaaS LaunchKit Pro setup reference
 ```
 
@@ -78,7 +78,7 @@ File bytes live in R2 under `docs/{userId}/{uuid}.{ext}`; metadata lives in D1.
 | **Auth** | Google OAuth 2.0 (PKCE) — `packages/auth` |
 | **Database** | Cloudflare D1 + Drizzle ORM |
 | **File storage** | Cloudflare R2 (private bucket) |
-| **Build** | Nx + SWC, pnpm workspaces, TypeScript |
+| **Build** | Bazel (typecheck + tests), pnpm workspaces, TypeScript |
 | **Testing** | Vitest |
 | **CI/CD** | GitHub Actions → OpenNext → Cloudflare Workers |
 
@@ -145,10 +145,10 @@ pnpm migrate      # apply a migration to local or remote D1
 ### Common Tasks
 
 ```bash
-pnpm exec nx run-many -t build      # Build everything
-pnpm exec nx run-many -t typecheck  # Typecheck everything
-pnpm exec nx run-many -t lint       # Lint
-pnpm exec vitest run                # Run tests
+bazel test //...                    # Typecheck + test everything (Bazel)
+pnpm run typecheck                  # Typecheck only (bazel build //...)
+pnpm run lint                       # Lint (Biome)
+pnpm test                           # Run tests (Vitest)
 pnpm run format                     # Prettier format
 ```
 

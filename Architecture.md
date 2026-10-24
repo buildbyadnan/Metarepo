@@ -11,7 +11,7 @@
 | **ORM**      | Drizzle ORM             | Type-safe SQL queries                    |
 | **Auth**     | Google OAuth 2.0 + PKCE | Secure, industry-standard authentication |
 | **Runtime**  | Cloudflare Workers      | Global edge deployment                   |
-| **Build**    | Nx + SWC → Bazel (migrating) | Monorepo orchestration, fast compilation; Bazel joining for multi-language |
+| **Build**    | Bazel (typecheck + tests) | Hermetic monorepo orchestration via aspect rules_js/ts; ready for multi-language targets |
 | **CI/CD**    | GitHub Actions          | Automated testing and deployment         |
 | **Language** | TypeScript 6            | End-to-end type safety                   |
 
@@ -124,10 +124,10 @@ metarepo/
 │   ├── deploy.web.yml                        # Auto-deploy web on push
 │   └── deploy.server.yml                     # Auto-deploy server on push
 │
-├── nx.json                                   # Nx orchestrator config
+├── BUILD.bazel / MODULE.bazel                # Bazel workspace (typecheck + tests)
 ├── tsconfig.base.json                        # Shared TypeScript config
 ├── vitest.config.ts                          # Test configuration
-├── eslint.config.mjs                         # ESLint flat config
+├── biome.json                                # Biome lint config (replaces ESLint)
 ├── .prettierrc                               # Prettier config
 ├── .editorconfig                             # Editor config
 └── package.json                              # Workspace root
@@ -536,20 +536,20 @@ The server's `wrangler.jsonc` defines the D1 database and R2 bucket bindings:
 npm install
 
 # Start development servers
-npx nx dev @repo/web         # Frontend on :3000
-npx nx dev @repo/server      # API on :8787
+pnpm dev web                 # Frontend on :3000
+pnpm dev server              # API on :8787
 
 # Build for production
-npx nx build @repo/web
+pnpm --filter @repo/web run build
 
 # Run tests
 npx vitest run
 
-# Lint
-npx nx run-many -t lint
+# Lint (Biome)
+pnpm run lint
 
-# Typecheck
-npx nx run-many -t typecheck
+# Typecheck (Bazel)
+pnpm run typecheck
 
 # Generate Drizzle migrations
 cd apps/server && npx drizzle-kit generate
@@ -558,8 +558,8 @@ cd apps/server && npx drizzle-kit generate
 cd apps/server && npm run migrate
 
 # Deploy to Cloudflare
-npx nx deploy @repo/web
-npx nx deploy @repo/server
+pnpm --filter @repo/web run deploy
+pnpm --filter @repo/server run deploy
 ```
 
 ### Shared Packages
@@ -645,4 +645,4 @@ git push origin main
 - [Cloudflare D1](https://developers.cloudflare.com/d1/) — Serverless SQLite database
 - [OpenNext](https://opennext.js.org/cloudflare) — Open-source Next.js deployment for Cloudflare
 - [Tailwind CSS](https://tailwindcss.com/) — Utility-first CSS framework
-- [Nx](https://nx.dev/) — Smart monorepo tooling
+- [Bazel](https://bazel.build/) — Hermetic build system: typecheck, tests, CI gates (multi-language roadmap)

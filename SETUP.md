@@ -162,10 +162,10 @@ Open two terminals:
 
 ```bash
 # Terminal 1 — API Server (port 8787)
-npx nx dev @repo/server
+pnpm dev server
 
 # Terminal 2 — Frontend (port 3000)
-npx nx dev @repo/web
+pnpm dev web
 ```
 
 > You can also use `npm run dev --workspace=@repo/server` / `npm run dev --workspace=@repo/web`.
@@ -205,8 +205,8 @@ git push origin main
 Or deploy manually:
 
 ```bash
-npx nx deploy @repo/server
-npx nx deploy @repo/web
+pnpm --filter @repo/server run deploy
+pnpm --filter @repo/web run deploy
 ```
 
 ---
