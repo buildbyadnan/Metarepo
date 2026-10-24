@@ -40,9 +40,6 @@ node_modules
 Thumbs.db
 .ssh
 
-# Nx workspace state (all machine-generated)
-.nx/
-
 # AI agent tool directories (canonical: .github/)
 .agents/
 .codex/

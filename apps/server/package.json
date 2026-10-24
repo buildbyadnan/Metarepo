@@ -3,16 +3,6 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "nx": {
-    "targets": {
-      "typecheck": {
-        "command": "tsc --noEmit -p tsconfig.json",
-        "options": {
-          "cwd": "{projectRoot}"
-        }
-      }
-    }
-  },
   "scripts": {
     "deploy": "wrangler deploy --minify",
     "dev": "wrangler dev",

@@ -2,17 +2,12 @@
 /**
  * Interactive dev launcher for the monorepo.
  *
- *   pnpm dev            -> asks which app to run, then starts it via Nx
- *   pnpm dev v2         -> skips the prompt (v1 | v2 | web | server)
+ *   pnpm dev            -> asks which app to run, then starts it via pnpm --filter
+ *   pnpm dev server     -> skips the prompt (web | server)
  */
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
-import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-
-const require = createRequire(import.meta.url);
-const NX_BIN = path.join(path.dirname(require.resolve("nx/package.json")), "dist/bin/nx.js");
 
 const APPS = [
   { key: "web", project: "@repo/web", label: "MetaRepo web (Next.js frontend)" },
@@ -20,10 +15,10 @@ const APPS = [
 ];
 
 function runApp(app) {
-  console.log(`\nStarting ${app.label}  (nx dev ${app.project})`);
+  console.log(`\nStarting ${app.label}  (pnpm --filter ${app.project} dev)`);
   console.log("Press Ctrl+C to stop.\n");
 
-  const child = spawn(process.execPath, [NX_BIN, "dev", app.project], { stdio: "inherit" });
+  const child = spawn("pnpm", ["--filter", app.project, "dev"], { stdio: "inherit" });
 
   // Forward termination signals so Ctrl+C cleanly stops the dev server.
   const forward = (signal) => () => child.kill(signal);
@@ -79,7 +74,7 @@ async function main() {
       rl.close();
       return;
     }
-    console.log("Invalid choice - type 1-4 or a key like v2.");
+    console.log("Invalid choice - type 1-2 or a key like web.");
   }
 }
 

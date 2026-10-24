@@ -7,6 +7,5 @@ onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
   - less
-  - nx
   - sharp
   - workerd
