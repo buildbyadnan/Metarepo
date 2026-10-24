@@ -1,0 +1,61 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@bazel_lib//lib:directory_path.bzl", "directory_path")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+npm_link_all_packages(name = "node_modules")
+
+# The target name `pkg` is required by rules_js v3: the pnpm workspace links
+# are generated against //<package>:pkg of each first-party package. Contents
+# mirror what consumers resolve through package.json (main/types -> src).
+npm_package(
+    name = "pkg",
+    srcs = glob(["src/**"]) + ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+# The vitest CLI entry point, taken from the linked package directory
+# (the pnpm tree in the source workspace is ignored via .bazelignore).
+directory_path(
+    name = "vitest_entry",
+    directory = "//:node_modules/vitest/dir",
+    path = "vitest.mjs",
+)
+
+# Type-check target: mirrors `tsc -p tsconfig.json --noEmit` — the exact
+# check nx runs today. Bazel deliberately runs no_emit: emission (dist/) stays
+# with pnpm/nx for now, so the two systems can never fight over outputs.
+# validate = False because the tsconfig intentionally keeps emit settings
+# (composite/emitDeclarationOnly) for the pnpm/nx toolchain.
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig_base"],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "typecheck",
+    srcs = glob(["src/**/*.ts"]),
+    no_emit = True,
+    tsconfig = ":tsconfig",
+    validate = False,
+    deps = [
+        # Test files import vitest's types.
+        "//:node_modules/vitest",
+    ],
+)
+
+js_test(
+    name = "test",
+    args = ["run", "--reporter=default"],
+    chdir = package_name(),
+    data = glob(["src/**/*.ts"]) + [
+        "//:node_modules",
+        # The package's own linked dependencies tree (currently empty; keeps
+        # tests working unchanged if deps are added to package.json later).
+        ":node_modules",
+    ],
+    entry_point = ":vitest_entry",
+)

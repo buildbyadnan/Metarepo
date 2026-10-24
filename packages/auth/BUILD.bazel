@@ -1,0 +1,66 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@bazel_lib//lib:directory_path.bzl", "directory_path")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+npm_link_all_packages(name = "node_modules")
+
+# The target name `pkg` is required by rules_js v3: the pnpm workspace links
+# are generated against //<package>:pkg of each first-party package. Contents
+# mirror what consumers resolve through package.json (main/types -> src).
+npm_package(
+    name = "pkg",
+    srcs = glob(["src/**"]) + ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+# The vitest CLI entry point, taken from the linked package directory
+# (the pnpm tree in the source workspace is ignored via .bazelignore).
+directory_path(
+    name = "vitest_entry",
+    directory = "//:node_modules/vitest/dir",
+    path = "vitest.mjs",
+)
+
+# Type-check target: mirrors `tsc -p tsconfig.json --noEmit` (the nx check).
+# The ts_config deps track the extends chain (base) and the project reference
+# to ../http so tsc can resolve both inside the sandbox.
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = [
+        "//:tsconfig_base",
+        "//packages/http:tsconfig",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "typecheck",
+    srcs = glob(["src/**/*.ts"]),
+    no_emit = True,
+    tsconfig = ":tsconfig",
+    validate = False,
+    deps = [
+        # `@repo/http` resolves through the Bazel-linked copy of the pnpm
+        # workspace link, exactly like outside Bazel (moduleResolution follows
+        # node_modules).
+        ":node_modules/@repo/http",
+        # Test files import vitest's types.
+        "//:node_modules/vitest",
+    ],
+)
+
+js_test(
+    name = "test",
+    args = ["run", "--reporter=default"],
+    chdir = package_name(),
+    data = glob(["src/**/*.ts"]) + [
+        "//:node_modules",
+        # The package's own linked dependencies (@repo/http) so vitest can
+        # resolve them at runtime, exactly like the pnpm tree.
+        ":node_modules",
+    ],
+    entry_point = ":vitest_entry",
+)

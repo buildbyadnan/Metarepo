@@ -1,0 +1,60 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@bazel_lib//lib:directory_path.bzl", "directory_path")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+npm_link_all_packages(name = "node_modules")
+
+# The vitest CLI entry point, taken from the linked package directory
+# (the pnpm tree in the source workspace is ignored via .bazelignore).
+directory_path(
+    name = "vitest_entry",
+    directory = "//:node_modules/vitest/dir",
+    path = "vitest.mjs",
+)
+
+# Type-check target: mirrors the nx typecheck (`tsc --noEmit -p tsconfig.json`).
+# The "types" entry in tsconfig is the generated wrangler bindings file, so it
+# must be part of srcs; "@repo/*" resolves through pnpm workspace links while
+# the tsconfig paths mapping points at the same sources. The ts_config deps
+# track the project references to the http and auth packages.
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = [
+        "//packages/auth:tsconfig",
+        "//packages/http:tsconfig",
+    ],
+)
+
+ts_project(
+    name = "typecheck",
+    srcs = glob(["src/**/*.ts"]) + [
+        "worker-configuration.d.ts",
+    ],
+    no_emit = True,
+    tsconfig = ":tsconfig",
+    validate = False,
+    deps = [
+        ":node_modules/@repo/auth",
+        ":node_modules/@repo/http",
+        ":node_modules/drizzle-orm",
+        ":node_modules/hono",
+        # Test files import vitest's types.
+        "//:node_modules/vitest",
+    ],
+)
+
+js_test(
+    name = "test",
+    args = ["run", "--reporter=default"],
+    chdir = package_name(),
+    data = glob(["src/**/*.ts"]) + [
+        "worker-configuration.d.ts",
+        "//:node_modules",
+        # The package's own linked dependencies (drizzle-orm, hono, @repo/*)
+        # so vitest can resolve them at runtime, exactly like the pnpm tree.
+        ":node_modules",
+    ],
+    entry_point = ":vitest_entry",
+)

@@ -1,0 +1,24 @@
+# Metarepo Bazel configuration.
+# Conventions mirror the proven local-ai-server workspace: pinned Bazel via
+# bazelisk, bzlmod, hermetic actions, strict environment.
+
+# Node actions must not inherit the host PATH; the hermetic Node toolchain
+# supplies the runtime, which is what rules_js recommends for reproducibility.
+build --incompatible_strict_action_env
+
+# Bazel Central Registry (the default, pinned explicitly for clarity).
+common --registry=https://bcr.bazel.build
+
+# Privacy: opt out of Aspect ruleset telemetry (industry-standard variable).
+common --repo_env=DO_NOT_TRACK=1
+
+# Tests print failures concisely instead of raw logs.
+test --test_output=errors
+
+# Local builds have plenty of RAM available; keeps first full builds smooth.
+startup --host_jvm_args=-Xmx4g
+
+# Some networks advertise IPv6 (AAAA) records but cannot route them; without
+# this the JVM downloader hangs until timeout while curl-style tools succeed.
+# Harmless on dual-stack machines — pure preference, not a restriction.
+startup --host_jvm_args=-Djava.net.preferIPv4Stack=true

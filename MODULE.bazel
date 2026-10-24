@@ -1,0 +1,51 @@
+module(name = "metarepo", version = "0.0.0")
+
+###############################################################################
+# R U L E S E T S
+# Pinned to exact versions verified against the Bazel Central Registry.
+# aspect_rules_js 3.x + aspect_rules_ts 3.x are the maintained successors of
+# the nx TypeScript pipeline; rules_nodejs provides the Node toolchain layer.
+###############################################################################
+bazel_dep(name = "aspect_rules_js", version = "3.5.1")
+bazel_dep(name = "aspect_rules_ts", version = "3.10.1")
+bazel_dep(name = "rules_nodejs", version = "6.7.7")
+# Same version aspect_rules_js 3.5.1 already pulls in; declared directly for
+# the `directory_path` rule used to point vitest entry points at linked
+# packages. Version is identical to the transitive one, so resolution is
+# unchanged.
+bazel_dep(name = "bazel_lib", version = "3.7.0")
+
+###############################################################################
+# N O D E   T O O L C H A I N
+# Pinned to the exact runtime this repo is proven on (local dev + CI both run
+# Node 22.x; package.json engines requires >=20).
+###############################################################################
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(name = "nodejs", node_version = "22.22.1")
+use_repo(node, "nodejs_toolchains")
+
+register_toolchains("@nodejs_toolchains//:all")
+
+###############################################################################
+# T Y P E S C R I P T
+# Same compiler version as pnpm-lock.yaml (typescript ~6.0.3 -> 6.0.3), so
+# Bazel type-checking and pnpm/nx type-checking can never disagree.
+###############################################################################
+typescript = use_extension("@aspect_rules_ts//ts:extensions.bzl", "typescript")
+typescript.deps(version = "6.0.3")
+use_repo(typescript, "npm_typescript")
+
+###############################################################################
+# N P M   D E P E N D E N C I E S
+# Imported from the existing pnpm lockfile: pnpm-lock.yaml stays the single
+# source of truth for JS dependencies (Bazel only mirrors it for fetching).
+# rules_js v3 also mirrors pnpm-workspace.yaml#onlyBuiltDependencies itself:
+# install scripts only run for packages you approved there — no duplicate
+# allowlist to keep in sync.
+###############################################################################
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+)
+use_repo(npm, "npm")

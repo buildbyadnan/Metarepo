@@ -1,0 +1,42 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+npm_link_all_packages(name = "node_modules")
+
+# The target name `pkg` is required by rules_js v3: the pnpm workspace links
+# are generated against //<package>:pkg of each first-party package. This
+# package is consumed as built dist/ output (package.json main/types), so the
+# package includes src, package.json and any nx-built dist output present.
+npm_package(
+    name = "pkg",
+    srcs = glob(
+        ["src/**"],
+        allow_empty = True,
+    ) + glob(
+        ["dist/**"],
+        allow_empty = True,
+    ) + ["package.json"],
+    visibility = ["//visibility:public"],
+)
+
+# Type-check target against tsconfig.lib.json — the real build config (the
+# package's tsconfig.json is only a project-references shell). no_emit keeps
+# Bazel out of dist/ ownership while the nx build target still emits it.
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.lib.json",
+    deps = ["//:tsconfig_base"],
+)
+
+ts_project(
+    name = "typecheck",
+    srcs = glob(["src/**/*.ts"]),
+    no_emit = True,
+    tsconfig = ":tsconfig",
+    validate = False,
+    deps = [
+        # tsconfig.lib.json sets "types": ["node"].
+        "//:node_modules/@types/node",
+    ],
+)

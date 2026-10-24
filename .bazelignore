@@ -1,0 +1,13 @@
+# pnpm-installed source trees, kept because the pnpm/nx workflow still uses
+# them. Bazel manages its own linked node_modules under bazel-out; these
+# directories are ignored so pnpm's workspace symlinks (e.g.
+# packages/auth/node_modules/@repo/http -> packages/http, which contains a
+# BUILD.bazel) are never mistaken for Bazel subpackages.
+# Paths must be listed explicitly (no glob support), including package dirs
+# that don't have a node_modules yet so this stays correct as deps are added.
+node_modules
+apps/server/node_modules
+apps/web/node_modules
+packages/api-endpoints/node_modules
+packages/auth/node_modules
+packages/http/node_modules

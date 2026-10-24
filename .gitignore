@@ -71,3 +71,6 @@ next-env.d.ts
 
 # Cloudflare
 .wrangler
+
+# Bazel (machine-generated convenience symlinks; the cache lives in ~/.cache/bazel)
+/bazel-*
