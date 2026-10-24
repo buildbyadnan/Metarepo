@@ -1,0 +1,35 @@
+name: Bazel CI
+
+# Shadow workflow: runs the Bazel build/test graph alongside the existing
+# nx-based CI so both toolchains are proven green before any existing
+# workflow is switched over (stage 3). The Bazel build is hermetic — it
+# fetches Node and all npm packages from pnpm-lock.yaml itself, so no
+# pnpm install step is needed here.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  bazel:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bazel
+        uses: bazel-contrib/setup-bazel@0.19.1
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
+      # Builds every package and runs all test targets (vitest suites +
+      # typecheck tests). Failures print concise test logs via
+      # .bazelrc -> test --test_output=errors.
+      - run: bazel test //...
