@@ -25,7 +25,7 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 function sanitizeName(name: string): string {
   return (
     (name || "User")
-      // eslint-disable-next-line no-control-regex -- intentional: strip control chars from user input
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip on user input
       .replace(/[\x00-\x1f\x7f]/g, "")
       .trim()
       .slice(0, 100)

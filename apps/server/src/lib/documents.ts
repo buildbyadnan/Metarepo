@@ -120,7 +120,7 @@ export function sniffDocumentKind(bytes: Uint8Array): DocumentKind | null {
  */
 export function sanitizeFileName(raw: string): string {
   const cleaned = (raw || "")
-    // eslint-disable-next-line no-control-regex -- intentional: strip control chars
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip
     .replace(/[\x00-\x1f\x7f]/g, "")
     .replace(/[/\\]/g, "_")
     .trim()
@@ -184,7 +184,7 @@ export function normalizeCategoryName(
 ): { ok: true; value: string } | { ok: false; reason: "invalid_name" | "builtin" } {
   if (typeof raw !== "string") return { ok: false, reason: "invalid_name" };
   const cleaned = raw
-    // eslint-disable-next-line no-control-regex -- intentional: strip control chars
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control-char strip
     .replace(/[\x00-\x1f\x7f]/g, "")
     .trim();
   // Reject (don't silently truncate): the user should see why nothing stuck.
