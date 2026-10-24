@@ -11,7 +11,7 @@
 | **ORM**      | Drizzle ORM             | Type-safe SQL queries                    |
 | **Auth**     | Google OAuth 2.0 + PKCE | Secure, industry-standard authentication |
 | **Runtime**  | Cloudflare Workers      | Global edge deployment                   |
-| **Build**    | Nx + SWC                | Monorepo orchestration, fast compilation |
+| **Build**    | Nx + SWC → Bazel (migrating) | Monorepo orchestration, fast compilation; Bazel joining for multi-language |
 | **CI/CD**    | GitHub Actions          | Automated testing and deployment         |
 | **Language** | TypeScript 6            | End-to-end type safety                   |
 

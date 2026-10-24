@@ -30,6 +30,7 @@ Metarepo/
 │   └── http/                   # @repo/http — shared HTTP/crypto utilities (fetch, HMAC, AES-GCM)
 ├── .github/workflows/          # CI + deploy pipelines
 ├── Architecture.md             # SaaS LaunchKit Pro architecture reference
+├── BAZEL.md                    # Bazel build system — how it coexists with nx
 └── SETUP.md                    # SaaS LaunchKit Pro setup reference
 ```
 
