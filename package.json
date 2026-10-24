@@ -41,7 +41,9 @@
   },
   "pnpm": {
     "overrides": {
-      "@node-minify/core>glob": "^10.5.0"
+      "@node-minify/core>glob": "^10.5.0",
+      "express>body-parser": "^2.4.0",
+      "miniflare>undici": "^7.30.1"
     }
   }
 }
